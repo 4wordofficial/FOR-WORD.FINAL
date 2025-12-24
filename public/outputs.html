@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Outputs | FOR:WORD Standalone</title>
+    <meta
+      name="description"
+      content="가설 검증 결과물을 관리하는 Outputs 페이지를 단일 HTML로 제공합니다."
+    />
+    <!-- ✅ index.html과 동일한 폰트 설정 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        /* Design tokens (index.html과 동일 계열) */
+        --background: 220 40% 98%;
+        --foreground: 220 30% 20%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 220 30% 20%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 220 30% 20%;
+
+        --primary: 90 60% 70%;
+        --primary-foreground: 90 40% 20%;
+
+        --secondary: 320 70% 88%;
+        --secondary-foreground: 320 40% 25%;
+
+        --muted: 220 25% 96%;
+        --muted-foreground: 220 15% 50%;
+
+        --accent: 200 75% 80%;
+        --accent-foreground: 200 40% 25%;
+
+        --destructive: 350 70% 65%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 220 20% 90%;
+        --input: 220 20% 90%;
+        --ring: 90 60% 70%;
+
+        --radius: 1rem;
+      }
+
+      *,
+      ::before,
+      ::after {
+        border-color: hsl(var(--border));
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
+      }
+    </style>
+
+    <!-- Tailwind CDN + config (index.html과 같은 토큰 구조 사용) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              border: 'hsl(var(--border))',
+              input: 'hsl(var(--input))',
+              ring: 'hsl(var(--ring))',
+              background: 'hsl(var(--background))',
+              foreground: 'hsl(var(--foreground))',
+              primary: {
+                DEFAULT: 'hsl(var(--primary))',
+                foreground: 'hsl(var(--primary-foreground))',
+              },
+              secondary: {
+                DEFAULT: 'hsl(var(--secondary))',
+                foreground: 'hsl(var(--secondary-foreground))',
+              },
+              destructive: {
+                DEFAULT: 'hsl(var(--destructive))',
+                foreground: 'hsl(var(--destructive-foreground))',
+              },
+              muted: {
+                DEFAULT: 'hsl(var(--muted))',
+                foreground: 'hsl(var(--muted-foreground))',
+              },
+              accent: {
+                DEFAULT: 'hsl(var(--accent))',
+                foreground: 'hsl(var(--accent-foreground))',
+              },
+              popover: {
+                DEFAULT: 'hsl(var(--popover))',
+                foreground: 'hsl(var(--popover-foreground))',
+              },
+              card: {
+                DEFAULT: 'hsl(var(--card))',
+                foreground: 'hsl(var(--card-foreground))',
+              },
+            },
+            borderRadius: {
+              lg: 'var(--radius)',
+              md: 'calc(var(--radius) - 2px)',
+              sm: 'calc(var(--radius) - 4px)',
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+
+  <!-- ✅ index.html과 동일하게 Inter 폰트 적용 -->
+  <body
+    class="min-h-screen bg-background text-foreground"
+    style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+  >
+    <!-- 상단 네비게이션 (구조/클래스 index.html과 동일) -->
+    <nav class="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div class="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center gap-8">
+            <a
+              href="#"
+              class="text-xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent"
+            >
+              FOR:WORD
+            </a>
+            <div class="hidden md:flex gap-1" id="nav-links"></div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12 py-8">
+      <div class="space-y-8">
+        <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div class="space-y-1">
+            <h1 class="text-3xl font-bold text-foreground">Outputs</h1>
+            <p class="text-muted-foreground mt-1">가설 검증 결과물을 관리하세요</p>
+          </div>
+          <button
+            class="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+            aria-label="새 아웃풋"
+          >
+            <i data-lucide="plus" class="h-4 w-4"></i>
+            새 아웃풋
+          </button>
+        </header>
+
+        <section id="stat-cards" class="grid grid-cols-1 md:grid-cols-4 gap-4"></section>
+
+        <section class="rounded-lg border bg-card shadow-sm">
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="border-b border-border bg-muted/30">
+                <tr>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-foreground">가설 내용</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-foreground w-24">버전</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-foreground w-28">상태</th>
+                  <th class="px-6 py-4 text-left text-sm font-semibold text-foreground w-32">생성일</th>
+                  <th class="px-6 py-4 text-center text-sm font-semibold text-foreground w-40">액션</th>
+                </tr>
+              </thead>
+              <tbody id="output-rows"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      // ✅ index.html 기준 네비게이션 (파일 링크 동일)
+      const navigation = [
+        { name: 'Dashboard', href: 'index.html', icon: 'layout-dashboard' },
+        { name: 'Graph', href: 'graph.html', icon: 'network' },
+        { name: 'Projects', href: 'projects.html', icon: 'folder-kanban' },
+        { name: 'Editor', href: 'editor.html', icon: 'file-pen' },
+        { name: 'Outputs', href: 'outputs.html', icon: 'file-output' },
+      ];
+
+      const mockOutputs = [
+        {
+          id: '1',
+          hypothesis: '사용자는 대시보드에서 메모 작성 시 실시간으로 자동 저장 기능을 원한다',
+          version: 'v2.0',
+          status: '완료',
+          createdAt: '2024-01-18',
+        },
+        {
+          id: '2',
+          hypothesis: '프로젝트 진행률을 시각적으로 표현하면 팀 생산성이 20% 향상된다',
+          version: 'v1.3',
+          status: '리뷰중',
+          createdAt: '2024-01-17',
+        },
+        {
+          id: '3',
+          hypothesis: '지식 그래프를 통한 메모 연결 시 아이디어 발견율이 증가한다',
+          version: 'v1.0',
+          status: '초안',
+          createdAt: '2024-01-15',
+        },
+        {
+          id: '4',
+          hypothesis: '태그 기반 필터링으로 정보 검색 시간을 50% 단축할 수 있다',
+          version: 'v3.1',
+          status: '완료',
+          createdAt: '2024-01-12',
+        },
+        {
+          id: '5',
+          hypothesis: '협업 기능 추가 시 팀 커뮤니케이션 효율이 개선된다',
+          version: 'v2.2',
+          status: '리뷰중',
+          createdAt: '2024-01-10',
+        },
+      ];
+
+      const statusTone = {
+        '초안': 'secondary',
+        '리뷰중': 'default',
+        '완료': 'outline',
+      };
+
+      const navLinks = document.getElementById('nav-links');
+      const statCards = document.getElementById('stat-cards');
+      const rowsContainer = document.getElementById('output-rows');
+
+      // ✅ index.html의 렌더 방식과 동일 구조 + 이 페이지(activeName)만 다르게
+      const renderNavigation = () => {
+        const activeName = 'Outputs'; // 이 페이지에서 활성화할 메뉴
+
+        navLinks.innerHTML = navigation
+          .map(
+            (item) => `
+            <a
+              href="${item.href}"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                item.name === activeName
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              }"
+            >
+              <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+              ${item.name}
+            </a>
+          `
+          )
+          .join('');
+
+        if (window.lucide) lucide.createIcons();
+      };
+
+      const renderStats = () => {
+        const stats = [
+          { label: '전체 아웃풋', value: mockOutputs.length, tone: 'text-foreground' },
+          {
+            label: '완료',
+            value: mockOutputs.filter((o) => o.status === '완료').length,
+            tone: 'text-primary',
+          },
+          {
+            label: '리뷰중',
+            value: mockOutputs.filter((o) => o.status === '리뷰중').length,
+            tone: 'text-accent-foreground',
+          },
+          {
+            label: '초안',
+            value: mockOutputs.filter((o) => o.status === '초안').length,
+            tone: 'text-muted-foreground',
+          },
+        ];
+
+        statCards.innerHTML = stats
+          .map(
+            (stat) => `
+            <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div class="p-4 space-y-1">
+                <p class="text-sm text-muted-foreground">${stat.label}</p>
+                <p class="text-2xl font-bold ${stat.tone}">${stat.value}</p>
+              </div>
+            </div>
+          `
+          )
+          .join('');
+      };
+
+      const badgeClass = (variant) => {
+        const base =
+          'inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm';
+        if (variant === 'secondary')
+          return `${base} bg-secondary text-secondary-foreground border-transparent`;
+        if (variant === 'default')
+          return `${base} bg-primary text-primary-foreground border-transparent`;
+        return `${base} border-border text-foreground bg-transparent`;
+      };
+
+      const renderTable = () => {
+        rowsContainer.innerHTML = mockOutputs
+          .map(
+            (output) => `
+          <tr class="border-b border-border hover:bg-muted/20 transition-colors">
+            <td class="px-6 py-4 align-top">
+              <p class="text-sm text-foreground font-medium leading-relaxed">${output.hypothesis}</p>
+            </td>
+            <td class="px-6 py-4 align-top">
+              <span class="inline-flex items-center rounded-full border border-border px-2.5 py-1 text-xs font-mono font-semibold bg-muted/40 text-foreground">${output.version}</span>
+            </td>
+            <td class="px-6 py-4 align-top">
+              <span class="${badgeClass(statusTone[output.status])}">${output.status}</span>
+            </td>
+            <td class="px-6 py-4 align-top">
+              <p class="text-sm text-muted-foreground">${output.createdAt}</p>
+            </td>
+            <td class="px-6 py-4 align-top">
+              <div class="flex items-center justify-center gap-2">
+                <button class="inline-flex items-center justify-center gap-1.5 rounded-md border bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted transition-colors">
+                  <i data-lucide="eye" class="h-3.5 w-3.5"></i>
+                  보기
+                </button>
+                <button class="inline-flex items-center justify-center gap-1.5 rounded-md border bg-background px-3 py-2 text-sm font-medium text-foreground shadow-sm hover:bg-muted transition-colors">
+                  <i data-lucide="download" class="h-3.5 w-3.5"></i>
+                  다운로드
+                </button>
+              </div>
+            </td>
+          </tr>
+        `
+          )
+          .join('');
+
+        if (window.lucide) lucide.createIcons();
+      };
+
+      renderNavigation();
+      renderStats();
+      renderTable();
+    </script>
+  </body>
+</html>

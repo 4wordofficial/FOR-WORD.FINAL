@@ -1,0 +1,1286 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Graph | FOR:WORD Standalone</title>
+    <meta
+      name="description"
+      content="메모에서 산출물까지의 흐름을 시각화하는 Graph 페이지를 단일 HTML로 제공합니다."
+    />
+
+    <!-- Inter 폰트: 다른 페이지와 동일 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        /* Design tokens from src/index.css */
+        --background: 220 40% 98%;
+        --foreground: 220 30% 20%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 220 30% 20%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 220 30% 20%;
+
+        --primary: 90 60% 70%;
+        --primary-foreground: 90 40% 20%;
+
+        --secondary: 320 70% 88%;
+        --secondary-foreground: 320 40% 25%;
+
+        --muted: 220 25% 96%;
+        --muted-foreground: 220 15% 50%;
+
+        --accent: 200 75% 80%;
+        --accent-foreground: 200 40% 25%;
+
+        --destructive: 350 70% 65%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 220 20% 90%;
+        --input: 220 20% 90%;
+        --ring: 90 60% 70%;
+
+        --radius: 1rem;
+      }
+
+      *,
+      ::before,
+      ::after {
+        border-color: hsl(var(--border));
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
+      }
+
+      /* Graph canvas */
+      .graph-surface {
+        background-color: hsl(var(--background));
+      }
+      .graph-grid {
+        background-image: radial-gradient(hsla(var(--muted-foreground), 0.2) 1px, transparent 1px);
+        background-size: 28px 28px;
+      }
+
+      /* Node styles mirroring ThemeNode / MemoNode */
+      .theme-node {
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 2.25rem;
+        color: hsl(var(--foreground));
+        text-shadow: 0 8px 26px rgba(0, 0, 0, 0.15);
+        pointer-events: auto;
+        cursor: grab;
+        transition: transform 150ms ease;
+        user-select: none;
+      }
+      .theme-node:active { cursor: grabbing; }
+      .theme-node .glow {
+        position: absolute;
+        inset: 0;
+        border-radius: 9999px;
+        filter: blur(32px);
+        opacity: 0.6;
+      }
+      .theme-node .label {
+        position: relative;
+        z-index: 1;
+        padding: 0 12px;
+        text-align: center;
+        line-height: 1.05;
+        word-break: keep-all;
+        white-space: pre-wrap;
+      }
+
+      .memo-node {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        cursor: grab;
+        user-select: none;
+      }
+      .memo-node:active { cursor: grabbing; }
+      .memo-node .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 9999px;
+        background-color: hsla(var(--accent), 0.6);
+        border: 2px solid hsl(var(--accent));
+      }
+      .memo-node .label {
+        position: absolute;
+        top: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        white-space: nowrap;
+        font-size: 0.85rem;
+        color: hsl(var(--foreground));
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Controls, dialog, toast */
+      .graph-controls button {
+        padding: 6px;
+        border-radius: 10px;
+        border: 1px solid hsl(var(--border));
+        background-color: hsl(var(--card));
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        transition: all 0.15s ease;
+      }
+      .graph-controls button:hover { border-color: hsl(var(--primary)); }
+
+      .graph-dialog-backdrop {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(0, 0, 0, 0.35);
+        z-index: 50;
+      }
+      .graph-dialog {
+        width: 520px;
+        max-width: calc(100vw - 2rem);
+        background-color: hsl(var(--card));
+        border-radius: 16px;
+        border: 1px solid hsl(var(--border));
+        padding: 20px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+      }
+
+      .toast-container {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 60;
+      }
+      .toast {
+        padding: 12px 14px;
+        border-radius: 12px;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+        border: 1px solid hsl(var(--border));
+        background-color: hsl(var(--card));
+        font-weight: 600;
+        color: hsl(var(--foreground));
+      }
+
+      .minimap {
+        width: 140px;
+        height: 100px;
+        border: 1px solid hsl(var(--border));
+        background-color: hsl(var(--card));
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+      }
+      .minimap svg {
+        width: 100%;
+        height: 100%;
+        background-image: linear-gradient(to right, hsl(var(--muted)) 1px, transparent 1px),
+          linear-gradient(to bottom, hsl(var(--muted)) 1px, transparent 1px);
+        background-size: 16px 16px;
+      }
+    </style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              border: 'hsl(var(--border))',
+              input: 'hsl(var(--input))',
+              ring: 'hsl(var(--ring))',
+              background: 'hsl(var(--background))',
+              foreground: 'hsl(var(--foreground))',
+              primary: {
+                DEFAULT: 'hsl(var(--primary))',
+                foreground: 'hsl(var(--primary-foreground))',
+              },
+              secondary: {
+                DEFAULT: 'hsl(var(--secondary))',
+                foreground: 'hsl(var(--secondary-foreground))',
+              },
+              destructive: {
+                DEFAULT: 'hsl(var(--destructive))',
+                foreground: 'hsl(var(--destructive-foreground))',
+              },
+              muted: {
+                DEFAULT: 'hsl(var(--muted))',
+                foreground: 'hsl(var(--muted-foreground))',
+              },
+              accent: {
+                DEFAULT: 'hsl(var(--accent))',
+                foreground: 'hsl(var(--accent-foreground))',
+              },
+              popover: {
+                DEFAULT: 'hsl(var(--popover))',
+                foreground: 'hsl(var(--popover-foreground))',
+              },
+              card: {
+                DEFAULT: 'hsl(var(--card))',
+                foreground: 'hsl(var(--card-foreground))',
+              },
+            },
+            borderRadius: {
+              lg: 'var(--radius)',
+              md: 'calc(var(--radius) - 2px)',
+              sm: 'calc(var(--radius) - 4px)',
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  </head>
+
+  <body
+    class="min-h-screen bg-background text-foreground"
+    style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+  >
+    <!-- 네비게이션: 다른 페이지와 동일 구조 / 스타일 -->
+    <nav class="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div class="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center gap-8">
+            <a
+              href="index.html"
+              class="text-xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent"
+            >
+              FOR:WORD
+            </a>
+            <div class="hidden md:flex gap-1" id="nav-links"></div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12 py-8">
+      <div class="space-y-6">
+        <header class="space-y-1">
+          <h1 class="text-3xl font-bold text-foreground">Graph</h1>
+          <p class="text-muted-foreground mt-1">메모에서 산출물까지의 흐름을 시각화하세요</p>
+        </header>
+
+        <section id="stat-cards" class="grid grid-cols-1 md:grid-cols-3 gap-4"></section>
+
+        <section class="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div class="flex flex-col space-y-1.5 p-6">
+            <div class="flex items-center gap-2">
+              <i data-lucide="trending-up" class="h-5 w-5 text-primary"></i>
+              <h2 class="text-2xl font-semibold leading-none tracking-tight flex items-center gap-2">
+                Knowledge Graph
+              </h2>
+            </div>
+            <p class="text-sm text-muted-foreground mt-1 leading-relaxed">
+              메모와 노트를 주제별로 연결하여 시각화합니다. 노드를 드래그하여 위치를 조정할 수 있습니다.
+            </p>
+          </div>
+          <div class="p-6 pt-0">
+            <div
+              id="graph-viewport"
+              class="relative w-full h-[600px] border border-border rounded-lg overflow-hidden bg-card"
+            >
+              <div id="graph-container" class="absolute inset-0 graph-surface graph-grid">
+                <svg id="graph-edges" class="absolute inset-0" aria-hidden="true"></svg>
+                <div id="graph-nodes" class="absolute inset-0"></div>
+              </div>
+              <div
+                class="absolute top-4 left-4 bg-card/80 backdrop-blur-sm border border-border rounded-lg p-3 shadow-sm max-w-sm"
+              >
+                <p class="text-sm font-medium text-foreground">노드를 드래그하여 위치를 조정하세요.</p>
+                <p class="text-xs text-muted-foreground mt-1">
+                  테마 노드를 선택하면 프로젝트/노트 생성 추천을 볼 수 있습니다.
+                </p>
+              </div>
+              <div id="graph-controls" class="graph-controls absolute top-4 right-4 flex gap-2"></div>
+              <div id="graph-suggestions" class="absolute bottom-4 left-4 space-y-2 max-w-xs"></div>
+              <div class="absolute bottom-4 right-4 minimap" id="graph-minimap"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-4" id="insights"></section>
+      </div>
+    </main>
+
+    <div id="dialog" class="hidden graph-dialog-backdrop">
+      <div class="graph-dialog">
+        <div class="flex items-start justify-between mb-3">
+          <div>
+            <p class="text-xs text-muted-foreground">선택한 테마</p>
+            <h3 id="dialog-title" class="text-lg font-bold text-foreground"></h3>
+          </div>
+          <button
+            id="dialog-close"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            aria-label="닫기"
+          >
+            <i data-lucide="x" class="h-4 w-4"></i>
+          </button>
+        </div>
+        <p id="dialog-desc" class="text-sm text-muted-foreground mb-4"></p>
+        <div class="bg-muted/60 p-3 rounded-lg border border-border mb-4" id="dialog-count"></div>
+        <div class="space-y-3" id="dialog-recommend"></div>
+        <div class="space-y-3 mt-4" id="dialog-actions"></div>
+        <div class="mt-4 flex justify-end">
+          <button
+            id="dialog-cancel"
+            class="inline-flex h-10 items-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            취소
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast-root" class="toast-container"></div>
+
+    <script>
+      // ─────────────────────────────────────────────────────────────
+      // 0) Theme + Firebase init (Home과 동일한 동작)
+      // ─────────────────────────────────────────────────────────────
+      const AUTH_KEY = 'forword.auth.v1';
+      const THEME_KEY = 'forword.theme';
+
+      const __fw_isLocalFile = window.location.protocol === 'file:' || window.location.origin === 'null';
+
+      if (localStorage.getItem(THEME_KEY) === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4Xz5BQEt4SYaKqP8qU9ocac__VQbVgD0",
+        authDomain: "forword-7af6f.firebaseapp.com",
+        projectId: "forword-7af6f",
+        storageBucket: "forword-7af6f.firebasestorage.app",
+        messagingSenderId: "828952645956",
+        appId: "1:828952645956:web:8c25750ea52be169650711",
+        measurementId: "G-7VPEYGEZL3",
+      };
+
+      if (typeof firebase === "undefined") {
+        console.error("Firebase SDK not loaded. Check script tags / network.");
+      } else if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+
+      const auth = typeof firebase !== "undefined" ? firebase.auth() : null;
+      if (auth) auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+      const db = typeof firebase !== "undefined" ? firebase.firestore() : null;
+
+      let currentUser = null;
+      let memosCache = []; // Firestore memos
+
+      function safeJsonParse(raw, fallback = null) {
+        try { return JSON.parse(raw); } catch { return fallback; }
+      }
+      function readAuthCache() {
+        const cached = safeJsonParse(localStorage.getItem(AUTH_KEY) || "null", null);
+        return cached && typeof cached === "object" ? cached : null;
+      }
+      function writeAuthCache(user, onboardingComplete) {
+        if (!user) return;
+        const providerId =
+          (user.providerData && user.providerData[0] && user.providerData[0].providerId) ||
+          (user.isAnonymous ? "anonymous" : "firebase");
+        const provider =
+          providerId === "google.com" ? "google" : providerId === "password" ? "password" : providerId;
+
+        localStorage.setItem(
+          AUTH_KEY,
+          JSON.stringify({
+            uid: user.uid || null,
+            email: user.email || null,
+            displayName: user.displayName || null,
+            provider,
+            onboardingComplete: !!onboardingComplete,
+          })
+        );
+      }
+
+      async function ensureUserProfile(user) {
+        if (!db || !user || !user.uid) return { onboardingComplete: false };
+        const ref = db.collection("users").doc(user.uid);
+
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        const providerIds = Array.from(
+          new Set((user.providerData || []).map((p) => p && p.providerId).filter(Boolean))
+        );
+
+        const base = {
+          uid: user.uid,
+          email: user.email || null,
+          displayName: user.displayName || null,
+          photoURL: user.photoURL || null,
+          providerIds,
+          lastSeenAt: now,
+        };
+
+        const snap = await ref.get();
+        if (!snap.exists) {
+          await ref.set({ ...base, createdAt: now, onboardingComplete: false }, { merge: true });
+          return { onboardingComplete: false };
+        }
+
+        await ref.set(base, { merge: true });
+        return snap.data() || { onboardingComplete: false };
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // 1) Navigation (기존 UI/UX 유지)
+      // ─────────────────────────────────────────────────────────────
+      const navigation = [
+        { name: 'Dashboard', href: 'index.html', icon: 'layout-dashboard' },
+        { name: 'Graph', href: 'graph.html', icon: 'network' },
+        { name: 'Projects', href: 'projects.html', icon: 'folder-kanban' },
+        { name: 'Editor', href: 'editor.html', icon: 'file-pen' },
+        { name: 'Outputs', href: 'outputs.html', icon: 'file-output' },
+      ];
+
+      const navLinks = document.getElementById('nav-links');
+      const renderNavigation = () => {
+        const activeName = 'Graph';
+        navLinks.innerHTML = navigation
+          .map(
+            (item) => `
+          <a
+            href="${item.href}"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              item.name === activeName
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            }"
+          >
+            <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+            ${item.name}
+          </a>
+        `
+          )
+          .join('');
+        if (window.lucide) lucide.createIcons();
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // 2) Stats (UI 동일, 값만 데이터 기반)
+      // ─────────────────────────────────────────────────────────────
+      let stats = [
+        { title: '총 메모', value: '0', icon: 'sticky-note', tone: 'accent' },
+        { title: '활성 대주제', value: '0', icon: 'network', tone: 'primary' },
+        { title: '완성 산출물', value: '—', icon: 'file-text', tone: 'accent' },
+      ];
+
+      const renderStats = () => {
+        const grid = document.getElementById('stat-cards');
+        if (!grid) return;
+        grid.innerHTML = stats
+          .map((card) => {
+            const toneBg = card.tone === 'primary' ? 'bg-primary/10' : 'bg-accent/10';
+            const toneText = card.tone === 'primary' ? 'text-primary' : 'text-accent';
+            return `
+            <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div class="p-6">
+                <div class="flex items-center gap-4">
+                  <div class="p-3 ${toneBg} rounded-lg">
+                    <i data-lucide="${card.icon}" class="${toneText}" style="width:24px;height:24px"></i>
+                  </div>
+                  <div>
+                    <p class="text-sm text-muted-foreground">${card.title}</p>
+                    <p class="text-2xl font-bold text-foreground">${card.value}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          })
+          .join('');
+        if (window.lucide) lucide.createIcons();
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // 3) Graph state
+      // ─────────────────────────────────────────────────────────────
+      const state = {
+        zoom: 1,
+        selectedNode: null,
+      };
+
+      let nodes = []; // runtime nodes
+      let edges = []; // runtime edges
+
+      const graphContainer = () => document.getElementById('graph-container');
+      const edgeLayer = () => document.getElementById('graph-edges');
+      const nodeLayer = () => document.getElementById('graph-nodes');
+      const minimapLayer = () => document.getElementById('graph-minimap');
+
+      const getNode = (id) => nodes.find((n) => n.id === id);
+
+      function firstLine(s, n = 18) {
+        const t = String(s || "").split(/\r?\n/)[0] || "";
+        const trimmed = t.trim();
+        if (!trimmed) return "메모";
+        return trimmed.length > n ? trimmed.slice(0, n) + "…" : trimmed;
+      }
+
+      function normArr(a) {
+        return Array.isArray(a) ? a.map((t) => String(t || "").trim()).filter(Boolean) : [];
+      }
+
+      function extractTopTopicFromMemo(m) {
+        const prim = normArr(m?.primaryTags || m?.primary_tags);
+        if (prim.length) return prim[0];
+        const top = String(m?.topTopic || m?.top_topic || m?.topic_axis || "").trim();
+        if (top) return top;
+        return "미분류";
+      }
+
+      function extractPersonalLabelFromMemo(m) {
+        const prim = normArr(m?.primaryTags || m?.primary_tags);
+        if (prim.length >= 3 && prim[2]) return prim[2];
+        return firstLine(m?.text || "", 16);
+      }
+
+      function hash01(str) {
+        const s = String(str || "");
+        let h = 2166136261;
+        for (let i = 0; i < s.length; i++) {
+          h ^= s.charCodeAt(i);
+          h = Math.imul(h, 16777619);
+        }
+        return (h >>> 0) / 4294967295;
+      }
+
+      function clamp(v, min, max) {
+        return Math.min(Math.max(v, min), max);
+      }
+
+      const themeGlowColors = [
+        "rgba(244,114,182,0.9)",
+        "rgba(96,165,250,0.9)",
+        "rgba(52,211,153,0.9)",
+        "rgba(251,191,36,0.9)",
+        "rgba(167,139,250,0.9)",
+        "rgba(251,146,60,0.9)",
+        "rgba(163,230,53,0.9)",
+        "rgba(34,211,238,0.9)",
+        "hsl(var(--muted-foreground))",
+      ];
+
+      function hashToColorIndex(str, mod = 8) {
+        const m = Number(mod) || 1;
+        const v = Math.floor(hash01(String(str || "")) * m);
+        return (v % m + m) % m;
+      }
+
+      function themeColorIndex(key) {
+        const raw = String(key || "");
+        const lower = raw.toLowerCase();
+
+        if (!raw.trim() || raw.trim() === "미분류") return 8;
+
+        if (/(사랑|연애|로맨스)/.test(raw) || /love|romance|date/.test(lower)) return 5;
+
+        if (/(감정|정서|일상|관계|회고|상처|외로움|불안|기쁨|슬픔)/.test(raw)) return 0;
+
+        if (/(업무|일|프로젝트|기획|회의|문서|보고|전략)/.test(raw) || /pm|work|project|doc|meeting|task/.test(lower)) return 1;
+
+        if (/(창업|비즈니스|사업|마케팅|세일즈|고객|수익|bm)/.test(raw) || /startup|business|marketing|sales|revenue|customer/.test(lower)) return 2;
+
+        if (/(공부|연구|학습|논문|수업|시험|정리|요약)/.test(raw) || /study|research|paper|class|exam/.test(lower)) return 3;
+
+        if (/(인사이트|통찰|철학|개념|사유|생각|아이디어|발상)/.test(raw) || /insight|idea|concept|philosophy|thought/.test(lower)) return 4;
+
+        if (/(계획|루틴|목표|습관|일정|관리|투두|todo)/.test(raw) || /plan|routine|goal|habit|schedule|todo/.test(lower)) return 6;
+
+        if (/(레퍼런스|자료|링크|유튜브|영상|기사|북마크)/.test(raw) || /reference|link|youtube|video|article|bookmark/.test(lower)) return 7;
+
+        return -1;
+      }
+
+      function themeColorForTopic(key) {
+        const idx = themeColorIndex(key);
+        if (idx >= 0) return themeGlowColors[idx];
+        return themeGlowColors[hashToColorIndex(key, 8)];
+      }
+
+      function buildGraphFromMemos() {
+        const container = graphContainer();
+        if (!container) return;
+
+        const rect = container.getBoundingClientRect();
+        const w = Math.max(300, rect.width);
+        const h = Math.max(300, rect.height);
+
+        // 1) bucket by top topic
+        const buckets = new Map(); // top -> { top, memos: [] }
+        (Array.isArray(memosCache) ? memosCache : []).forEach((m) => {
+          const top = extractTopTopicFromMemo(m);
+          if (!buckets.has(top)) buckets.set(top, { top, memos: [] });
+          buckets.get(top).memos.push(m);
+        });
+
+        // 2) order buckets by count desc
+        const ordered = Array.from(buckets.values())
+          .sort((a, b) => (b.memos.length - a.memos.length) || a.top.localeCompare(b.top))
+          .slice(0, 10); // 화면 과밀 방지
+
+        // 3) create theme nodes
+        const cx = w / 2;
+        const cy = h / 2;
+        const ringR = clamp(Math.min(w, h) * 0.30, 150, 240);
+        const themeNodePad = 90;
+
+        const newNodes = [];
+        const newEdges = [];
+
+        const k = Math.max(1, ordered.length);
+        ordered.forEach((b, i) => {
+          const angle = (Math.PI * 2 * i) / k - Math.PI / 2;
+          const x = clamp(cx + ringR * Math.cos(angle), themeNodePad, w - themeNodePad);
+          const y = clamp(cy + ringR * Math.sin(angle) * 0.85, themeNodePad, h - themeNodePad);
+
+          const themeId = `theme:${b.top}`;
+          newNodes.push({
+            id: themeId,
+            type: "theme",
+            label: b.top,
+            color: themeColorForTopic(b.top),
+            memoCount: b.memos.length,
+            x,
+            y,
+          });
+
+          // 4) place memo nodes near its theme node
+          const memos = b.memos
+            .slice()
+            .sort((a, c) => {
+              const at = a?.createdAt?.toMillis ? a.createdAt.toMillis() : Number(a.createdAt || 0);
+              const ct = c?.createdAt?.toMillis ? c.createdAt.toMillis() : Number(c.createdAt || 0);
+              return ct - at;
+            });
+
+          const memoLimit = 26;
+          const sample = memos.slice(0, memoLimit);
+
+          const baseR = 120;
+          const spreadR = 70;
+
+          sample.forEach((m, j) => {
+            const memoId = String(m.id || `tmp-${i}-${j}`);
+            const memoNodeId = `memo:${memoId}`;
+
+            const rSeed = hash01(memoId);
+            const aSeed = hash01(`${memoId}:${b.top}`);
+
+            const rr = baseR + spreadR * rSeed;
+            const aa = (Math.PI * 2) * (aSeed + (j / Math.max(1, sample.length)) * 0.18);
+
+            const mx = clamp(x + rr * Math.cos(aa), 16, w - 16);
+            const my = clamp(y + rr * Math.sin(aa), 16, h - 16);
+
+            newNodes.push({
+              id: memoNodeId,
+              type: "memo",
+              label: extractPersonalLabelFromMemo(m),
+              x: mx,
+              y: my,
+              memoId,
+              topTopic: b.top,
+            });
+
+            newEdges.push({
+              id: `e:${themeId}:${memoNodeId}`,
+              source: themeId,
+              target: memoNodeId,
+            });
+          });
+        });
+
+        // If no memos -> keep a single placeholder theme node
+        if (!newNodes.length) {
+          newNodes.push({
+            id: "theme:empty",
+            type: "theme",
+            label: "대주제",
+            color: themeColorForTopic("미분류"),
+            memoCount: 0,
+            x: cx,
+            y: cy,
+          });
+        }
+
+        nodes = newNodes;
+        edges = newEdges;
+
+        // stats update
+        const totalMemos = (Array.isArray(memosCache) ? memosCache.length : 0);
+        const activeThemes = ordered.length;
+
+        stats = [
+          { title: '총 메모', value: String(totalMemos), icon: 'sticky-note', tone: 'accent' },
+          { title: '활성 대주제', value: String(activeThemes), icon: 'network', tone: 'primary' },
+          { title: '완성 산출물', value: '—', icon: 'file-text', tone: 'accent' },
+        ];
+
+        renderStats();
+        renderGraph();
+        renderSuggestions();
+        renderInsights();
+        if (window.lucide) lucide.createIcons();
+      }
+
+      const drawEdges = () => {
+        const svg = edgeLayer();
+        const container = graphContainer();
+        if (!svg || !container) return;
+
+        const rect = container.getBoundingClientRect();
+        svg.setAttribute('width', rect.width);
+        svg.setAttribute('height', rect.height);
+
+        svg.innerHTML = edges
+          .map((edge) => {
+            const source = getNode(edge.source);
+            const target = getNode(edge.target);
+            if (!source || !target) return '';
+            return `<line x1="${source.x}" y1="${source.y}" x2="${target.x}" y2="${target.y}" stroke="hsl(var(--muted-foreground))" stroke-width="2" />`;
+          })
+          .join('');
+      };
+
+      const createThemeNode = (node) => {
+        const el = document.createElement('div');
+        el.className = 'theme-node';
+        el.style.left = `${node.x - 90}px`;
+        el.style.top = `${node.y - 90}px`;
+        el.dataset.id = node.id;
+        el.innerHTML = `
+          <div class="glow" style="background: radial-gradient(circle, ${node.color} 0%, transparent 70%)"></div>
+          <div class="label">${node.label}</div>
+        `;
+        el.addEventListener('click', () => openDialog(node));
+        enableDrag(el, node, 90);
+        return el;
+      };
+
+      const createMemoNode = (node) => {
+        const el = document.createElement('div');
+        el.className = 'memo-node';
+        el.style.left = `${node.x - 10}px`;
+        el.style.top = `${node.y - 10}px`;
+        el.dataset.id = node.id;
+        el.innerHTML = `
+          <span class="dot"></span>
+          <span class="label">${node.label}</span>
+        `;
+        enableDrag(el, node, 16);
+        return el;
+      };
+
+      const enableDrag = (el, node, padding) => {
+        let dragging = false;
+        let offsetX = 0;
+        let offsetY = 0;
+        el.addEventListener('pointerdown', (e) => {
+          dragging = true;
+          const rect = graphContainer().getBoundingClientRect();
+          offsetX = e.clientX - rect.left - node.x;
+          offsetY = e.clientY - rect.top - node.y;
+          el.setPointerCapture(e.pointerId);
+        });
+        el.addEventListener('pointermove', (e) => {
+          if (!dragging) return;
+          const rect = graphContainer().getBoundingClientRect();
+          node.x = Math.min(Math.max(e.clientX - rect.left - offsetX, padding), rect.width - padding);
+          node.y = Math.min(Math.max(e.clientY - rect.top - offsetY, padding), rect.height - padding);
+          if (node.type === 'theme') {
+            el.style.left = `${node.x - 90}px`;
+            el.style.top = `${node.y - 90}px`;
+          } else {
+            el.style.left = `${node.x - 10}px`;
+            el.style.top = `${node.y - 10}px`;
+          }
+          drawEdges();
+          updateMiniMap();
+        });
+        el.addEventListener('pointerup', (e) => {
+          dragging = false;
+          el.releasePointerCapture(e.pointerId);
+        });
+        el.addEventListener('pointerleave', () => (dragging = false));
+      };
+
+      const renderGraph = () => {
+        const layer = nodeLayer();
+        if (!layer) return;
+
+        layer.innerHTML = '';
+        nodes
+          .filter((n) => n.type === 'theme')
+          .forEach((node) => layer.appendChild(createThemeNode(node)));
+        nodes
+          .filter((n) => n.type === 'memo')
+          .forEach((node) => layer.appendChild(createMemoNode(node)));
+
+        drawEdges();
+        updateMiniMap();
+      };
+
+      const renderControls = () => {
+        const controls = document.getElementById('graph-controls');
+        controls.innerHTML = `
+          <button data-zoom="in" aria-label="확대"><i data-lucide="zoom-in" class="h-4 w-4"></i></button>
+          <button data-zoom="out" aria-label="축소"><i data-lucide="zoom-out" class="h-4 w-4"></i></button>
+          <button data-zoom="reset" aria-label="원래대로"><i data-lucide="scan" class="h-4 w-4"></i></button>
+        `;
+        const viewport = document.getElementById('graph-viewport');
+        controls.querySelectorAll('[data-zoom]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            if (btn.dataset.zoom === 'in') state.zoom = Math.min(state.zoom + 0.1, 1.4);
+            if (btn.dataset.zoom === 'out') state.zoom = Math.max(state.zoom - 0.1, 0.7);
+            if (btn.dataset.zoom === 'reset') state.zoom = 1;
+            viewport.style.transform = `scale(${state.zoom})`;
+            viewport.style.transformOrigin = 'center';
+          });
+        });
+      };
+
+      const updateMiniMap = () => {
+        const svgHost = minimapLayer();
+        const container = graphContainer();
+        if (!svgHost || !container) return;
+
+        const width = svgHost.clientWidth || 140;
+        const height = svgHost.clientHeight || 100;
+        svgHost.innerHTML = '';
+
+        const rect = container.getBoundingClientRect();
+        const scaleX = width / rect.width;
+        const scaleY = height / rect.height;
+
+        const miniSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        miniSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+        edges.forEach((edge) => {
+          const s = getNode(edge.source);
+          const t = getNode(edge.target);
+          if (!s || !t) return;
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', (s.x * scaleX).toString());
+          line.setAttribute('y1', (s.y * scaleY).toString());
+          line.setAttribute('x2', (t.x * scaleX).toString());
+          line.setAttribute('y2', (t.y * scaleY).toString());
+          line.setAttribute('stroke', 'hsl(var(--muted-foreground))');
+          line.setAttribute('stroke-width', '1.5');
+          miniSvg.appendChild(line);
+        });
+
+        nodes.forEach((node) => {
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('cx', (node.x * scaleX).toString());
+          circle.setAttribute('cy', (node.y * scaleY).toString());
+          circle.setAttribute('r', node.type === 'theme' ? '8' : '4');
+          circle.setAttribute('fill', node.type === 'theme' ? node.color : 'hsl(var(--muted))');
+          miniSvg.appendChild(circle);
+        });
+
+        svgHost.appendChild(miniSvg);
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // 4) Dialog / Toast (기존 UI 유지)
+      // ─────────────────────────────────────────────────────────────
+      const toastRoot = document.getElementById('toast-root');
+      const showToast = (message) => {
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = message;
+        toastRoot.appendChild(el);
+        setTimeout(() => el.remove(), 2200);
+      };
+
+      const dialog = document.getElementById('dialog');
+      const dialogTitle = document.getElementById('dialog-title');
+      const dialogDesc = document.getElementById('dialog-desc');
+      const dialogCount = document.getElementById('dialog-count');
+      const dialogRecommend = document.getElementById('dialog-recommend');
+      const dialogActions = document.getElementById('dialog-actions');
+      const dialogClose = document.getElementById('dialog-close');
+      const dialogCancel = document.getElementById('dialog-cancel');
+
+      const recommendation = (memoCount) => (memoCount >= 3 ? 'project' : 'note');
+
+      async function createFromTheme(node, kind) {
+        if (!db || !currentUser || !currentUser.uid) {
+          showToast('로그인 상태에서만 생성할 수 있습니다.');
+          return false;
+        }
+
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        try {
+          if (kind === 'project') {
+            const ref = db.collection("users").doc(currentUser.uid).collection("projects").doc();
+            await ref.set(
+              {
+                name: node.label,
+                description: 'Graph에서 생성됨',
+                goal: '',
+                expanded: true,
+                todoTasks: [],
+                objectives: [],
+                createdAt: now,
+                updatedAt: now,
+                source: {
+                  from: 'graph',
+                  theme: node.label,
+                  memoCount: Number(node.memoCount || 0),
+                },
+              },
+              { merge: true }
+            );
+          } else {
+            const ref = db.collection("users").doc(currentUser.uid).collection("notes").doc();
+            await ref.set(
+              {
+                title: node.label,
+                body: '',
+                createdAt: now,
+                updatedAt: now,
+                source: { from: 'graph', theme: node.label, memoCount: Number(node.memoCount || 0) },
+              },
+              { merge: true }
+            );
+          }
+          return true;
+        } catch (e) {
+          console.error('createFromTheme error:', e);
+          showToast('생성 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+          return false;
+        }
+      }
+
+      const renderDialogContent = () => {
+        const node = state.selectedNode;
+        if (!node) return;
+
+        dialogTitle.textContent = `${node.label} 생성하기`;
+        dialogDesc.textContent = '이 대주제로 프로젝트 또는 노트를 생성할 수 있습니다.';
+        dialogCount.innerHTML = `
+          <p class="text-sm text-muted-foreground mb-1">연결된 메모</p>
+          <p class="text-2xl font-bold text-foreground">${node.memoCount || 0}개</p>
+        `;
+
+        const rec = recommendation(node.memoCount || 0);
+        dialogRecommend.innerHTML = `
+          <div class="bg-accent/10 border border-accent/30 p-3 rounded-lg">
+            <p class="text-sm font-medium text-accent flex items-center gap-2">
+              <i data-lucide="lightbulb" class="h-4 w-4"></i>
+              ${rec === 'project' ? '프로젝트 생성을 추천합니다' : '노트 생성을 추천합니다'}
+            </p>
+            <p class="text-xs text-muted-foreground mt-1">
+              ${
+                rec === 'project'
+                  ? '메모가 충분히 모였습니다. 기한과 목표가 있는 프로젝트로 발전시키세요.'
+                  : '정보성 메모로 정리하기 좋습니다. 추가 메모가 모이면 프로젝트로 전환할 수 있습니다.'
+              }
+            </p>
+          </div>
+        `;
+
+        dialogActions.innerHTML = `
+          <button class="w-full p-4 border-2 border-border rounded-lg hover:border-primary hover:bg-primary/5 transition-all text-left group" data-action="project">
+            <div class="flex items-start gap-3">
+              <div class="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <i data-lucide="calendar" class="h-5 w-5 text-primary"></i>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <h4 class="font-semibold text-foreground">프로젝트</h4>
+                  ${
+                    rec === 'project'
+                      ? '<span class="inline-flex px-2 py-0.5 rounded-md bg-primary text-primary-foreground text-xs">추천</span>'
+                      : ''
+                  }
+                </div>
+                <p class="text-sm text-muted-foreground mt-1">기한이 있는 목표 중심 작업</p>
+                <p class="text-xs text-muted-foreground mt-1">• 마감일 설정 가능 • 진행 상태 추적 • BMC/PSST 프레임워크</p>
+              </div>
+            </div>
+          </button>
+          <button class="w-full p-4 border-2 border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-all text-left group" data-action="note">
+            <div class="flex items-start gap-3">
+              <div class="p-2 bg-accent/10 rounded-lg group-hover:bg-accent/20 transition-colors">
+                <i data-lucide="file-text" class="h-5 w-5 text-accent"></i>
+              </div>
+              <div class="flex-1">
+                <div class="flex items-center gap-2">
+                  <h4 class="font-semibold text-foreground">노트</h4>
+                  ${
+                    rec === 'note'
+                      ? '<span class="inline-flex px-2 py-0.5 rounded-md bg-muted text-foreground text-xs">추천</span>'
+                      : ''
+                  }
+                </div>
+                <p class="text-sm text-muted-foreground mt-1">정보성, 기록 중심 문서</p>
+                <p class="text-xs text-muted-foreground mt-1">• 기한 없음 • 지식 축적 • 자유로운 형식</p>
+              </div>
+            </div>
+          </button>
+        `;
+
+        dialogActions.querySelectorAll('[data-action]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const kind = btn.dataset.action;
+            const ok = await createFromTheme(node, kind);
+            if (ok) {
+              showToast(`"${node.label}" 대주제로 새 ${kind === 'project' ? '프로젝트' : '노트'}가 생성되었습니다!`);
+              closeDialog();
+            }
+          });
+        });
+
+        if (window.lucide) lucide.createIcons();
+      };
+
+      const openDialog = (node) => {
+        state.selectedNode = node;
+        dialog.classList.remove('hidden');
+        renderDialogContent();
+      };
+
+      const closeDialog = () => {
+        dialog.classList.add('hidden');
+        state.selectedNode = null;
+      };
+
+      dialogClose.addEventListener('click', closeDialog);
+      dialogCancel.addEventListener('click', closeDialog);
+      dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) closeDialog();
+      });
+
+      // ─────────────────────────────────────────────────────────────
+      // 5) Suggestions/Insights (UI 유지)
+      // ─────────────────────────────────────────────────────────────
+      const renderSuggestions = () => {
+        const wrap = document.getElementById('graph-suggestions');
+        if (!wrap) return;
+
+        const themeNodes = nodes.filter((n) => n.type === 'theme');
+        wrap.innerHTML = themeNodes
+          .filter((n) => (n.memoCount || 0) >= 2)
+          .slice(0, 3)
+          .map(
+            (node) => `
+            <div class="bg-card border border-border rounded-lg p-3 shadow-lg">
+              <p class="text-sm text-muted-foreground mb-2">"${node.label}"에 ${(node.memoCount || 0)}개의 메모가 모였습니다</p>
+              <button class="inline-flex h-9 w-full items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 px-3" data-node="${node.id}">
+                생성하기
+              </button>
+            </div>
+          `
+          )
+          .join('');
+
+        wrap.querySelectorAll('[data-node]').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const node = getNode(btn.dataset.node);
+            if (node) openDialog(node);
+          });
+        });
+
+        if (window.lucide) lucide.createIcons();
+      };
+
+      const renderInsights = () => {
+        const wrap = document.getElementById('insights');
+        if (!wrap) return;
+
+        const themeNodes = nodes.filter((n) => n.type === 'theme')
+          .sort((a, b) => (b.memoCount || 0) - (a.memoCount || 0))
+          .slice(0, 3);
+
+        wrap.innerHTML = `
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col space-y-1.5 p-6">
+              <h3 class="text-lg font-semibold leading-none tracking-tight">전환율 인사이트</h3>
+            </div>
+            <div class="p-6 pt-0 space-y-4">
+              <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <p class="text-sm text-muted-foreground">메모 → 프로젝트</p>
+                  <p class="text-2xl font-bold text-foreground">—</p>
+                </div>
+                <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-transparent bg-primary text-primary-foreground">대기</span>
+              </div>
+              <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <p class="text-sm text-muted-foreground">프로젝트 → 산출물</p>
+                  <p class="text-2xl font-bold text-foreground">—</p>
+                </div>
+                <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-transparent bg-secondary text-secondary-foreground">대기</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col space-y-1.5 p-6">
+              <h3 class="text-lg font-semibold leading-none tracking-tight">활성 대주제</h3>
+            </div>
+            <div class="p-6 pt-0 space-y-3">
+              ${
+                themeNodes.length
+                  ? themeNodes.map((t) => `
+                    <div class="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div>
+                        <p class="font-medium text-foreground">${t.label}</p>
+                        <p class="text-sm text-muted-foreground">${t.memoCount || 0}개 메모</p>
+                      </div>
+                    </div>
+                  `).join('')
+                  : `
+                    <div class="p-3 bg-muted/50 rounded-lg">
+                      <p class="text-sm text-muted-foreground">아직 표시할 대주제가 없습니다.</p>
+                    </div>
+                  `
+              }
+            </div>
+          </div>
+        `;
+
+        if (window.lucide) lucide.createIcons();
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // 6) Firestore: memos load + graph build
+      // ─────────────────────────────────────────────────────────────
+      async function fetchMemosFromServer() {
+        if (!currentUser || !db) return;
+        try {
+          const snap = await db
+            .collection("users")
+            .doc(currentUser.uid)
+            .collection("memos")
+            .orderBy("createdAt", "desc")
+            .limit(400)
+            .get();
+
+          memosCache = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        } catch (e) {
+          console.error("메모 로드 오류:", e);
+          memosCache = [];
+        } finally {
+          buildGraphFromMemos();
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // 7) Init (기존 UI/UX 유지)
+      // ─────────────────────────────────────────────────────────────
+      function initBaseUI() {
+        renderNavigation();
+        renderStats();
+        renderControls();
+        renderInsights();
+        buildGraphFromMemos();
+        if (window.lucide) lucide.createIcons();
+      }
+
+      initBaseUI();
+
+      // Auth gate (Home과 동일한 방식)
+      let __fw_authGateTimer = null;
+
+      if (!auth) {
+        showToast('Firebase SDK 로드 실패: 네트워크/스크립트 태그를 확인하세요.');
+      } else {
+        auth.onAuthStateChanged(async (user) => {
+          if (!user) {
+            if (__fw_isLocalFile) {
+              if (__fw_authGateTimer) { clearTimeout(__fw_authGateTimer); __fw_authGateTimer = null; }
+              showToast('로컬 파일로 실행 중입니다. Firebase 세션을 사용하려면 Hosting URL에서 열어주세요.');
+              buildGraphFromMemos();
+              return;
+            }
+
+            if (__fw_authGateTimer) clearTimeout(__fw_authGateTimer);
+            __fw_authGateTimer = setTimeout(() => {
+              try {
+                if (!auth.currentUser) {
+                  localStorage.removeItem(AUTH_KEY);
+                  window.location.replace("login.html");
+                }
+              } catch (e) {
+                localStorage.removeItem(AUTH_KEY);
+                window.location.replace("login.html");
+              }
+            }, 3000);
+            return;
+          }
+
+          if (__fw_authGateTimer) { clearTimeout(__fw_authGateTimer); __fw_authGateTimer = null; }
+
+          let onboardingComplete = false;
+          try {
+            const profile = await ensureUserProfile(user);
+            onboardingComplete = !!profile.onboardingComplete;
+          } catch (e) {
+            const cached = readAuthCache();
+            onboardingComplete = !!(cached && cached.uid === user.uid && cached.onboardingComplete);
+            console.warn("Profile load failed; falling back to cache:", e);
+          }
+
+          writeAuthCache(user, onboardingComplete);
+
+          if (!onboardingComplete) {
+            window.location.replace("onboarding.html");
+            return;
+          }
+
+          currentUser = user;
+          await fetchMemosFromServer();
+        });
+      }
+
+      // 화면 리사이즈 시 레이아웃 재배치
+      let __fw_resizeTimer = null;
+      window.addEventListener("resize", () => {
+        if (__fw_resizeTimer) clearTimeout(__fw_resizeTimer);
+        __fw_resizeTimer = setTimeout(() => {
+          buildGraphFromMemos();
+        }, 150);
+      });
+    </script>
+  </body>
+</html>

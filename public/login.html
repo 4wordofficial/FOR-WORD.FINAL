@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>로그인 - FOR:WORD</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --background: 48 24% 96%;
+      --surface: 0 0% 100%;
+      --foreground: 221 39% 11%;
+      --muted: 220 9% 46%;
+      --muted-foreground: 220 9% 46%;
+      --card: 0 0% 100%;
+      --card-foreground: 221 39% 11%;
+      --primary: 211 39% 23%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 152 56% 28%;
+      --secondary-foreground: 0 0% 100%;
+      --tertiary: 263 70% 50%;
+      --destructive: 0 72% 51%;
+      --border: 220 13% 91%;
+      --ring: 211 39% 23%;
+    }
+    .dark {
+      --background: 222 49% 8%;
+      --surface: 221 51% 12%;
+      --foreground: 220 48% 94%;
+      --muted: 222 17% 70%;
+      --muted-foreground: 222 17% 70%;
+      --card: 221 51% 12%;
+      --card-foreground: 220 48% 94%;
+      --primary: 220 100% 74%;
+      --primary-foreground: 222 49% 8%;
+      --secondary: 160 64% 54%;
+      --secondary-foreground: 222 49% 8%;
+      --tertiary: 260 100% 81%;
+      --border: 218 34% 22%;
+    }
+    html { font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+    body { background: hsl(var(--background)); color: hsl(var(--foreground)); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+    .container { min-height: 100vh; display: flex; }
+
+    /* Left Panel */
+    .left-panel {
+      display: none;
+      flex: 1;
+      background: hsl(var(--primary));
+      padding: 3rem;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    @media (min-width: 1024px) { .left-panel { display: flex; } }
+
+    .logo-row { display: flex; align-items: center; gap: 0.75rem; }
+    .logo-box {
+      width: 3rem; height: 3rem;
+      border-radius: 0.75rem;
+      background: hsl(var(--primary-foreground) / 0.2);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-box svg { width: 1.5rem; height: 1.5rem; color: hsl(var(--primary-foreground)); }
+    .logo-text { font-size: 1.5rem; font-weight: 700; color: hsl(var(--primary-foreground)); }
+
+    .hero-content { max-width: 28rem; }
+    .hero-title {
+      font-size: 2.25rem; font-weight: 700;
+      color: hsl(var(--primary-foreground));
+      margin-bottom: 1.5rem; line-height: 1.3;
+    }
+    .hero-desc {
+      font-size: 1.125rem;
+      color: hsl(var(--primary-foreground) / 0.8);
+      line-height: 1.7;
+    }
+
+    .stats-row { display: flex; align-items: center; gap: 2rem; }
+    .stat-value { font-size: 1.875rem; font-weight: 700; color: hsl(var(--primary-foreground)); }
+    .stat-label { font-size: 0.875rem; color: hsl(var(--primary-foreground) / 0.7); }
+    .stat-divider { width: 1px; height: 3rem; background: hsl(var(--primary-foreground) / 0.2); }
+
+    /* Right Panel */
+    .right-panel {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.5rem;
+    }
+    @media (min-width: 1024px) { .right-panel { padding: 3rem; } }
+
+    .form-container { width: 100%; max-width: 28rem; }
+
+    /* Mobile Logo */
+    .mobile-logo { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 3rem; }
+    @media (min-width: 1024px) { .mobile-logo { display: none; } }
+    .mobile-logo .logo-box { background: hsl(var(--primary)); }
+    .mobile-logo .logo-box svg { color: hsl(var(--primary-foreground)); }
+    .mobile-logo .logo-text { color: hsl(var(--foreground)); }
+
+    .form-header { margin-bottom: 2rem; }
+    .form-title { font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); margin-bottom: 0.5rem; }
+    .form-subtitle { color: hsl(var(--muted-foreground)); }
+
+    .form-group { margin-bottom: 1.25rem; }
+    .form-label { display: block; font-size: 0.875rem; font-weight: 500; color: hsl(var(--foreground)); margin-bottom: 0.5rem; }
+
+    .input-wrapper { position: relative; }
+    .input-icon {
+      position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
+      width: 1.25rem; height: 1.25rem; color: hsl(var(--muted));
+    }
+    .input-action {
+      position: absolute; right: 1rem; top: 50%; transform: translateY(-50%);
+      border: none; background: transparent;
+      color: hsl(var(--muted));
+      cursor: pointer;
+      padding: 0.25rem;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 0.5rem;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .input-action:hover { background: hsl(var(--border) / 0.45); color: hsl(var(--foreground)); }
+    .input-action svg { width: 1.1rem; height: 1.1rem; }
+
+    .paper-input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 3rem;
+      border-radius: 0.75rem;
+      border: 1px solid hsl(var(--border));
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+      font-size: 1rem;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .paper-input.with-action { padding-right: 3rem; }
+    .paper-input::placeholder { color: hsl(var(--muted) / 0.6); }
+    .paper-input:focus {
+      outline: none;
+      border-color: hsl(var(--primary));
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+    }
+
+    .error-text { font-size: 0.875rem; color: hsl(var(--destructive)); margin-top: 0.5rem; }
+
+    .ink-button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      width: 100%; padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      font-weight: 500; font-size: 1rem; font-family: inherit;
+      background: hsl(var(--primary)); color: hsl(var(--primary-foreground));
+      border: none; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .ink-button:hover { opacity: 0.9; box-shadow: 0 4px 12px hsl(var(--primary) / 0.3); }
+    .ink-button:active { transform: scale(0.98); }
+    .ink-button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ink-button svg { width: 1.25rem; height: 1.25rem; }
+
+    .outline-button {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.65rem;
+      width: 100%; padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      font-weight: 500; font-size: 1rem; font-family: inherit;
+      background: hsl(var(--card));
+      color: hsl(var(--foreground));
+      border: 1px solid hsl(var(--border));
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .outline-button:hover { box-shadow: 0 6px 14px hsl(var(--foreground) / 0.08); }
+    .outline-button:active { transform: scale(0.99); }
+    .outline-button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .outline-button svg { width: 1.25rem; height: 1.25rem; }
+
+    .divider {
+      display: flex; align-items: center;
+      gap: 1rem;
+      margin: 1.25rem 0;
+      color: hsl(var(--muted-foreground));
+      font-size: 0.875rem;
+    }
+    .divider::before, .divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: hsl(var(--border));
+    }
+
+    .signup-link { margin-top: 1.75rem; text-align: center; color: hsl(var(--muted-foreground)); }
+    .signup-link a { color: hsl(var(--primary)); font-weight: 500; text-decoration: none; }
+    .signup-link a:hover { text-decoration: underline; }
+
+    .spinner {
+      width: 1.25rem; height: 1.25rem;
+      border: 2px solid currentColor; border-top-color: transparent;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .hidden { display: none !important; }
+  
+    /* Left Panel CTA accent color reference */
+    .left-panel { --cta-fg: var(--primary-foreground); }
+
+    /* =========================
+       Left CTA Motion (FOR:WORD)
+       ========================= */
+    .left-panel { position: relative; overflow: hidden; }
+    .left-panel > * { position: relative; z-index: 1; }
+
+    .hero-title .cta-highlight { position: relative; display: inline-block; z-index: 0; }
+    .hero-title .cta-highlight::after {
+      content: "";
+      position: absolute;
+      left: -0.18em; right: -0.18em;
+      bottom: 0.12em;
+      height: 0.58em;
+      background: hsl(var(--cta-fg) / 0.18);
+      border-radius: 0.55em;
+      transform: scaleX(0);
+      transform-origin: left;
+      z-index: -1;
+    }
+
+    @keyframes ctaFadeUp {
+      0%   { opacity: 0; transform: translateY(14px); filter: blur(10px); }
+      60%  { opacity: 1; transform: translateY(0);    filter: blur(0); }
+      100% { opacity: 1; transform: translateY(0);    filter: blur(0); }
+    }
+    @keyframes ctaReveal {
+      0%   { opacity: 0; transform: translateY(16px); clip-path: inset(0 100% 0 0); filter: blur(10px); }
+      60%  { opacity: 1; transform: translateY(0);    clip-path: inset(0 0 0 0);   filter: blur(0); }
+      100% { opacity: 1; transform: translateY(0);    clip-path: inset(0 0 0 0);   filter: blur(0); }
+    }
+    @keyframes highlightSweep {
+      0%   { transform: scaleX(0); opacity: 0.0; }
+      35%  { opacity: 1.0; }
+      100% { transform: scaleX(1); opacity: 1.0; }
+    }
+    @keyframes ctaAmbientIn {
+      0%   { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes ctaPop {
+      0%   { opacity: 0; transform: scale(0.92); }
+      60%  { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .left-panel::before {
+        content: "";
+        position: absolute;
+        inset: -40%;
+        background:
+          radial-gradient(circle at 18% 20%, hsl(var(--cta-fg) / 0.10), transparent 55%),
+          radial-gradient(circle at 82% 30%, hsl(var(--cta-fg) / 0.08), transparent 55%),
+          radial-gradient(circle at 50% 80%, hsl(var(--cta-fg) / 0.06), transparent 55%);
+        filter: blur(14px);
+        opacity: 0;
+        animation: ctaAmbientIn 1700ms ease-out both;
+        pointer-events: none;
+      }
+
+      .left-panel .logo-row {
+        animation: ctaFadeUp 860ms cubic-bezier(.2,.9,.2,1) both;
+        animation-delay: 60ms;
+        will-change: transform, opacity, filter;
+      }
+      .left-panel .hero-title {
+        animation: ctaReveal 1180ms cubic-bezier(.2,.9,.2,1) both;
+        animation-delay: 170ms;
+        will-change: transform, opacity, clip-path, filter;
+      }
+      .left-panel .hero-desc {
+        animation: ctaFadeUp 1080ms cubic-bezier(.2,.9,.2,1) both;
+        animation-delay: 380ms;
+        will-change: transform, opacity, filter;
+      }
+      .left-panel .hero-title .cta-highlight::after {
+        animation: highlightSweep 1080ms cubic-bezier(.2,.9,.2,1) both;
+        animation-delay: 820ms;
+        will-change: transform, opacity;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .left-panel::before, .left-panel * { animation: none !important; transition: none !important; }
+      .hero-title .cta-highlight::after { transform: none; }
+    }
+
+</style>
+</head>
+<body>
+  <div class="container">
+    <!-- Left Panel -->
+    <div class="left-panel">
+      <div class="logo-row">
+        <div class="logo-box">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/>
+          </svg>
+        </div>
+        <span class="logo-text">FOR:WORD</span>
+      </div>
+      <div class="hero-content">
+        <h1 class="hero-title">흩어진 <span class="cta-highlight">메모</span>를 연결해드립니다</h1>
+        <p class="hero-desc">잊혀진 문장들이 당신에게 돌아옵니다.</p>
+      </div>
+      <div class="stats-row">
+            </div>
+    </div>
+
+    <!-- Right Panel -->
+    <div class="right-panel">
+      <div class="form-container">
+        <div class="mobile-logo">
+          <div class="logo-box">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/>
+            </svg>
+          </div>
+          <span class="logo-text">FOR:WORD</span>
+        </div>
+
+        <div class="form-header">
+          <h2 class="form-title">다시 오셨군요</h2>
+          <p class="form-subtitle">이메일/비밀번호 또는 Google로 로그인하세요</p>
+        </div>
+
+        <form id="loginForm">
+          <div class="form-group">
+            <label class="form-label" for="email">이메일</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+              <input type="email" id="email" class="paper-input" placeholder="example@email.com" autocomplete="email" autofocus>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="password">비밀번호</label>
+            <div class="input-wrapper">
+              <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input type="password" id="password" class="paper-input with-action" placeholder="••••••••" autocomplete="current-password">
+              <button type="button" id="togglePwBtn" class="input-action" aria-label="비밀번호 보기/숨기기" title="비밀번호 보기/숨기기">
+                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <p id="errorText" class="error-text hidden"></p>
+          </div>
+
+          <button type="submit" id="submitBtn" class="ink-button">
+            <span id="btnText">이메일로 로그인</span>
+            <svg id="btnArrow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
+            <div id="btnSpinner" class="spinner hidden"></div>
+          </button>
+        </form>
+
+        <div class="divider">또는</div>
+
+        <button type="button" id="googleBtn" class="outline-button">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 533.5 544.3" aria-hidden="true">
+            <path fill="currentColor" d="M533.5 278.4c0-17.4-1.6-34.1-4.6-50.4H272v95.3h146.9c-6.3 34.1-25.2 63-53.8 82.3v68h87c50.9-46.9 81.4-116 81.4-195.2z"/>
+            <path fill="currentColor" d="M272 544.3c73.7 0 135.5-24.5 180.7-66.6l-87-68c-24.1 16.2-55 25.8-93.7 25.8-71.9 0-132.8-48.5-154.6-113.6H27.5v71.5C72.4 475.2 165.3 544.3 272 544.3z"/>
+            <path fill="currentColor" d="M117.4 321.9c-10.4-30.9-10.4-64.3 0-95.2V155.2H27.5c-38.8 77.6-38.8 169.6 0 247.2l89.9-80.5z"/>
+            <path fill="currentColor" d="M272 107.7c40.1-.6 78.7 14.1 108.3 41.6l81.1-81.1C411.8 24.5 350 0 272 0 165.3 0 72.4 69.1 27.5 155.2l89.9 71.5C139.2 156.2 200.1 107.7 272 107.7z"/>
+          </svg>
+          <span>Google로 계속</span>
+          <div id="googleSpinner" class="spinner hidden"></div>
+        </button>
+
+        <div class="signup-link">
+          아직 계정이 없으신가요? <a href="signup.html">회원가입</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Auth (선택): Firebase를 쓰려면 아래 설정값을 채워주세요 -->
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+  <script>
+    const AUTH_KEY = 'forword.auth.v1';
+    const THEME_KEY = 'forword.theme';
+
+    function normalizeProviderId(pid) {
+      if (!pid) return 'firebase';
+      if (pid === 'google.com') return 'google';
+      if (pid === 'password') return 'password';
+      return pid;
+    }
+
+
+    // Firebase 설정 (Firebase Console > 프로젝트 설정 > 앱)
+    // Email/Password + Google 제공업체를 Firebase Authentication에서 활성화해야 합니다.
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyC4Xz5BQEt4SYaKqP8qU9ocac__VQbVgD0",
+      authDomain: "forword-7af6f.firebaseapp.com",
+      projectId: "forword-7af6f",
+      storageBucket: "forword-7af6f.firebasestorage.app",
+      messagingSenderId: "828952645956",
+      appId: "1:828952645956:web:8c25750ea52be169650711",
+      measurementId: "G-7VPEYGEZL3"
+    };
+
+    // Apply theme
+    if (localStorage.getItem(THEME_KEY) === 'dark') {
+      document.documentElement.classList.add('dark');
+    }
+
+    // Elements
+    const form = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const togglePwBtn = document.getElementById('togglePwBtn');
+    const errorText = document.getElementById('errorText');
+
+    const submitBtn = document.getElementById('submitBtn');
+    const btnText = document.getElementById('btnText');
+    const btnArrow = document.getElementById('btnArrow');
+    const btnSpinner = document.getElementById('btnSpinner');
+
+    const googleBtn = document.getElementById('googleBtn');
+    const googleSpinner = document.getElementById('googleSpinner');
+
+    function setError(message) {
+      if (!message) {
+        errorText.textContent = '';
+        errorText.classList.add('hidden');
+        return;
+      }
+      errorText.textContent = message;
+      errorText.classList.remove('hidden');
+    }
+
+    function setLoading(target, isLoading) {
+      if (target === 'email') {
+        submitBtn.disabled = isLoading;
+        btnText.classList.toggle('hidden', isLoading);
+        btnArrow.classList.toggle('hidden', isLoading);
+        btnSpinner.classList.toggle('hidden', !isLoading);
+      }
+      if (target === 'google') {
+        googleBtn.disabled = isLoading;
+        googleSpinner.classList.toggle('hidden', !isLoading);
+      }
+    }
+
+
+    async function ensureLocalPersistence() {
+      if (!auth || !auth.setPersistence) return;
+      try {
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      } catch (e) {
+        // ignore; Auth will fall back to default persistence
+      }
+    }
+
+    function mapAuthError(err) {
+      const code = (err && err.code) ? String(err.code) : '';
+      switch (code) {
+        case 'auth/invalid-email': return '올바른 이메일 형식이 아닙니다.';
+        case 'auth/user-not-found': return '계정을 찾을 수 없습니다. 회원가입을 진행해주세요.';
+        case 'auth/wrong-password': return '비밀번호가 올바르지 않습니다.';
+        case 'auth/invalid-credential':
+        case 'auth/invalid-login-credentials': return '이메일 또는 비밀번호가 올바르지 않습니다.';
+        case 'auth/too-many-requests': return '시도 횟수가 많습니다. 잠시 후 다시 시도해주세요.';
+        case 'auth/popup-closed-by-user': return '로그인 팝업이 닫혔습니다.';
+        case 'auth/account-exists-with-different-credential': return '같은 이메일로 다른 로그인 방식이 이미 연결되어 있습니다.';
+        default: return (err && err.message) ? err.message : '로그인에 실패했습니다. 다시 시도해주세요.';
+      }
+    }
+
+    function firebaseConfigured() {
+      // placeholders가 그대로면 미설정으로 판단
+      if (!window.firebase || !firebase.initializeApp) return false;
+      const s = JSON.stringify(FIREBASE_CONFIG || {});
+      return !s.includes('YOUR_API_KEY') && !s.includes('YOUR_PROJECT_ID') && !s.includes('YOUR_APP_ID');
+    }
+
+    // Initialize Firebase (if configured)
+    let auth = null;
+    let db = null;
+    let redirectInProgress = false;
+    if (firebaseConfigured()) {
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+        auth = firebase.auth();
+
+        // 로그인 상태 유지
+        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+
+            // Firestore (profile)
+    try { db = firebase.firestore(); } catch (e) { db = null; }
+
+    // (auth routing removed) 로그인 상태 자동 라우팅은 home.html에서만 처리합니다.
+
+  } catch (e) {
+    console.warn('Firebase init failed:', e);
+  }
+}
+
+async function ensureUserDoc(user) {
+  if (!db || !user || !user.uid) return { onboardingComplete: false };
+  const ref = db.collection('users').doc(user.uid);
+  const now = firebase.firestore.FieldValue.serverTimestamp();
+  const providerIds = Array.from(new Set((user.providerData || []).map(p => p && p.providerId).filter(Boolean)));
+
+  const base = {
+    uid: user.uid,
+    email: user.email || null,
+    displayName: user.displayName || null,
+    photoURL: user.photoURL || null,
+    providerIds,
+    lastLoginAt: now
+  };
+
+  const snap = await ref.get();
+  if (!snap.exists) {
+    await ref.set({ ...base, createdAt: now, onboardingComplete: false }, { merge: true });
+    return { onboardingComplete: false };
+  }
+  await ref.set(base, { merge: true });
+  return snap.data() || { onboardingComplete: false };
+}
+
+async function persistAndRedirect(user, provider) {
+  if (!user) return;
+
+  const profile = await ensureUserDoc(user);
+  const onboardingComplete = !!profile.onboardingComplete;
+
+  localStorage.setItem(AUTH_KEY, JSON.stringify({
+    uid: user.uid || null,
+    email: user.email || null,
+    displayName: user.displayName || null,
+    provider: normalizeProviderId(provider || null),
+    onboardingComplete
+  }));
+
+  window.location.replace(onboardingComplete ? 'home.html' : 'onboarding.html');
+}
+
+    // Password toggle
+    togglePwBtn.addEventListener('click', () => {
+      const isPw = passwordInput.type === 'password';
+      passwordInput.type = isPw ? 'text' : 'password';
+      togglePwBtn.setAttribute('aria-pressed', String(isPw));
+    });
+
+    // Email/Password login
+    form.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      setError('');
+
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+
+      if (!email) return setError('이메일을 입력해주세요.');
+      if (!email.includes('@')) return setError('올바른 이메일 형식이 아닙니다.');
+      if (!password) return setError('비밀번호를 입력해주세요.');
+      if (password.length < 6) return setError('비밀번호는 6자 이상이어야 합니다.');
+
+      setLoading('email', true);
+
+      try {
+        if (auth) {
+          await ensureLocalPersistence();
+        const cred = await auth.signInWithEmailAndPassword(email, password);
+          redirectInProgress = true;
+          await persistAndRedirect(cred.user, 'password');
+          return;
+        }
+
+        // Firebase 미설정: 데모 모드(기존 로컬스토리지 기반 흐름 유지)
+        await new Promise(r => setTimeout(r, 650));
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ email, onboardingComplete: false, provider: 'local' }));
+        window.location.replace('onboarding.html');
+      } catch (err) {
+        setError(mapAuthError(err));
+      } finally {
+        setLoading('email', false);
+      }
+    });
+
+    // Google login
+    googleBtn.addEventListener('click', async () => {
+      setError('');
+      setLoading('google', true);
+
+      try {
+        if (!auth) {
+          setError('Google 로그인을 사용하려면 Firebase 설정이 필요합니다.');
+          return;
+        }
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+
+        await ensureLocalPersistence();
+        const result = await auth.signInWithPopup(provider);
+        redirectInProgress = true;
+        await persistAndRedirect(result.user, 'google');
+      } catch (err) {
+        setError(mapAuthError(err));
+      } finally {
+        setLoading('google', false);
+      }
+    });
+  </script>
+</body>
+</html>

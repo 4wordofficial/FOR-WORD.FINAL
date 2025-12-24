@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>온보딩 - FOR:WORD</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --background: 48 24% 96%;
+      --foreground: 221 39% 11%;
+      --muted: 220 9% 46%;
+      --muted-foreground: 220 9% 46%;
+      --card: 0 0% 100%;
+      --primary: 211 39% 23%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 152 56% 28%;
+      --secondary-foreground: 0 0% 100%;
+      --tertiary: 263 70% 50%;
+      --border: 220 13% 91%;
+    }
+    .dark {
+      --background: 222 49% 8%;
+      --foreground: 220 48% 94%;
+      --muted: 222 17% 70%;
+      --muted-foreground: 222 17% 70%;
+      --card: 221 51% 12%;
+      --primary: 220 100% 74%;
+      --primary-foreground: 222 49% 8%;
+      --secondary: 160 64% 54%;
+      --secondary-foreground: 222 49% 8%;
+      --tertiary: 260 100% 81%;
+      --border: 218 34% 22%;
+    }
+    html { font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+    body { background: hsl(var(--background)); color: hsl(var(--foreground)); min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+    
+    header { padding: 1.5rem; }
+    .logo-row { display: flex; align-items: center; gap: 0.75rem; }
+    .logo-box { width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background: hsl(var(--primary)); display: flex; align-items: center; justify-content: center; }
+    .logo-box svg { width: 1.25rem; height: 1.25rem; color: hsl(var(--primary-foreground)); }
+    .logo-text { font-size: 1.25rem; font-weight: 700; color: hsl(var(--foreground)); }
+    
+    .progress-container { padding: 0 1.5rem 2rem; }
+    .progress-bar { display: flex; gap: 0.5rem; max-width: 28rem; margin: 0 auto; }
+    .progress-segment { flex: 1; height: 0.25rem; border-radius: 9999px; background: hsl(var(--border)); transition: background 0.3s; }
+    .progress-segment.active { background: hsl(var(--primary)); }
+    .progress-text { text-align: center; font-size: 0.875rem; color: hsl(var(--muted-foreground)); margin-top: 0.75rem; }
+    
+    .content { flex: 1; padding: 0 1.5rem 7rem; max-width: 32rem; margin: 0 auto; width: 100%; }
+    .step-title { font-size: 1.5rem; font-weight: 700; color: hsl(var(--foreground)); margin-bottom: 0.5rem; }
+    .step-desc { color: hsl(var(--muted-foreground)); margin-bottom: 2rem; }
+    
+    /* Step 1 */
+    .role-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .role-item {
+      display: flex; align-items: center; gap: 1rem; padding: 1rem;
+      border-radius: 0.75rem; border: 2px solid hsl(var(--border));
+      background: transparent; cursor: pointer; transition: all 0.2s; width: 100%; text-align: left; font-family: inherit;
+    }
+    .role-item:hover { border-color: hsl(var(--muted)); }
+    .role-item.selected { border-color: hsl(var(--primary)); background: hsl(var(--primary) / 0.05); }
+    .role-icon { width: 3rem; height: 3rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; background: hsl(var(--muted) / 0.2); color: hsl(var(--muted-foreground)); transition: all 0.2s; }
+    .role-item.selected .role-icon { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+    .role-icon svg { width: 1.5rem; height: 1.5rem; }
+    .role-info { flex: 1; }
+    .role-label { font-weight: 600; color: hsl(var(--foreground)); }
+    .role-desc-text { font-size: 0.875rem; color: hsl(var(--muted-foreground)); }
+    .role-check { width: 1.25rem; height: 1.25rem; color: hsl(var(--primary)); opacity: 0; transition: opacity 0.2s; }
+    .role-item.selected .role-check { opacity: 1; }
+    
+    /* Step 2 */
+    .paper-card { background: hsl(var(--card)); border-radius: 1rem; border: 1px solid hsl(var(--border) / 0.5); box-shadow: 0 1px 2px hsl(var(--foreground) / 0.02), 0 4px 8px hsl(var(--foreground) / 0.04); padding: 1.5rem; margin-bottom: 2rem; }
+    .slider-labels { display: flex; justify-content: space-between; font-size: 0.875rem; font-weight: 500; margin-bottom: 1rem; }
+    .slider-labels .tertiary { color: hsl(var(--tertiary)); }
+    .slider-labels .secondary { color: hsl(var(--secondary)); }
+    .slider { width: 100%; height: 0.5rem; border-radius: 9999px; background: hsl(var(--border)); appearance: none; cursor: pointer; }
+    .slider::-webkit-slider-thumb { appearance: none; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: hsl(var(--primary)); cursor: pointer; box-shadow: 0 2px 8px hsl(var(--foreground) / 0.2); }
+    .slider-hint { text-align: center; font-size: 0.875rem; color: hsl(var(--muted-foreground)); margin-top: 1.5rem; }
+    .type-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+    .type-card { background: hsl(var(--card)); border-radius: 1rem; border: 1px solid hsl(var(--border) / 0.5); box-shadow: 0 1px 2px hsl(var(--foreground) / 0.02), 0 4px 8px hsl(var(--foreground) / 0.04); padding: 1rem; text-align: center; }
+    .type-icon { width: 2.5rem; height: 2.5rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem; font-size: 1.25rem; }
+    .type-icon.tertiary { background: hsl(var(--tertiary) / 0.1); }
+    .type-icon.primary { background: hsl(var(--primary) / 0.1); }
+    .type-icon.secondary { background: hsl(var(--secondary) / 0.1); }
+    .type-label { font-size: 0.75rem; color: hsl(var(--muted-foreground)); }
+    
+/* Step 3 */
+.form-grid { display: flex; flex-direction: column; gap: 1.25rem; }
+.field-label { display: block; font-size: 0.875rem; font-weight: 500; color: hsl(var(--foreground)); margin-bottom: 0.5rem; }
+.paper-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+/* Birthdate (YYYY/MM/DD) */
+.birth-row{
+  display:flex;
+  align-items:center;
+  gap:0.5rem;
+}
+.birth-row .paper-input{
+  text-align:center;
+  padding:0.75rem 0.75rem;
+}
+.birth-row .birth-year{ flex: 1.2; min-width: 5.5rem; }
+.birth-row .birth-month, .birth-row .birth-day{ flex: 0.8; min-width: 3.75rem; }
+.birth-sep{
+  color: hsl(var(--muted));
+  font-weight: 600;
+  user-select:none;
+}
+
+.paper-input::placeholder { color: hsl(var(--muted) / 0.6); }
+.paper-input:focus { outline: none; border-color: hsl(var(--primary)); box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2); }
+.paper-input[disabled] { opacity: 0.7; cursor: not-allowed; }
+
+.helper-row { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 0.5rem; }
+.helper-text { font-size: 0.875rem; color: hsl(var(--muted-foreground)); line-height: 1.4; }
+.helper-text.error { color: hsl(0 72% 51%); }
+.helper-text.success { color: hsl(var(--secondary)); }
+
+.mini-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.625rem 0.9rem;
+  border-radius: 0.75rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.mini-btn:hover { background: hsl(var(--muted) / 0.15); }
+.mini-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.mini-btn.primary { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: transparent; }
+.mini-btn.primary:hover { opacity: 0.92; box-shadow: 0 4px 12px hsl(var(--primary) / 0.25); }
+
+.verify-row { display: flex; gap: 0.75rem; align-items: center; }
+.verify-row .paper-input { flex: 1; }
+.badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  background: hsl(var(--muted) / 0.2);
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.dev-code {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / 0.12);
+  border: 1px dashed hsl(var(--border));
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+}
+
+.status-row { display: flex; align-items: center; gap: 0.5rem; }
+.status-icon { width: 1.25rem; height: 1.25rem; color: hsl(var(--secondary)); }
+
+    /* Consent (약관/개인정보 동의) */
+.consent-card { margin-top: 0.25rem; }
+.consent-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; }
+.consent-title { font-weight: 600; color: hsl(var(--foreground)); }
+.consent-all { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: hsl(var(--foreground)); cursor: pointer; user-select: none; }
+.consent-all input { width: 1rem; height: 1rem; }
+.consent-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.consent-item {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.06);
+  cursor: pointer;
+}
+.consent-item input { width: 1rem; height: 1rem; }
+.consent-meta { flex: 1; display: inline-flex; align-items: center; gap: 0.5rem; min-width: 0; }
+.consent-badge { font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 9999px; background: hsl(var(--muted) / 0.2); color: hsl(var(--muted-foreground)); }
+.consent-text { color: hsl(var(--foreground)); }
+.consent-link { font-size: 0.875rem; color: hsl(var(--primary)); text-decoration: none; flex: 0 0 auto; }
+.consent-link:hover { text-decoration: underline; }
+/* Footer */
+    .footer-nav { position: fixed; bottom: 0; left: 0; right: 0; padding: 1.5rem; background: hsl(var(--background)); border-top: 1px solid hsl(var(--border));  z-index: 50; }
+    .footer-content { max-width: 32rem; margin: 0 auto; display: flex; gap: 0.75rem; }
+    .ink-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1.25rem; border-radius: 0.75rem; font-weight: 500; font-size: 1rem; font-family: inherit; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border: none; cursor: pointer; transition: all 0.2s; flex: 1; }
+    .ink-button:hover { opacity: 0.9; box-shadow: 0 4px 12px hsl(var(--primary) / 0.3); }
+    .ink-button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .ink-button-secondary { background: hsl(var(--secondary)); color: hsl(var(--secondary-foreground)); }
+    .ink-button-secondary:hover { box-shadow: 0 4px 12px hsl(var(--secondary) / 0.3); }
+    .ink-button-outline { display: inline-flex; align-items: center; justify-content: center; background: transparent; color: hsl(var(--foreground)); border: 1px solid hsl(var(--border)); flex: 0; padding: 0.625rem; width: 3rem; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s; }
+    .ink-button-outline:hover { background: hsl(var(--muted) / 0.2); box-shadow: none; }
+    .ink-button svg { width: 1rem; height: 1rem; }
+    
+    @keyframes fade-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .animate-fade-up { animation: fade-up 0.4s ease-out forwards; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-row">
+      <div class="logo-box"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></div>
+      <span class="logo-text">FOR:WORD</span>
+    </div>
+  </header>
+  
+  <div class="progress-container">
+    <div class="progress-bar"><div class="progress-segment active" id="prog1"></div><div class="progress-segment" id="prog2"></div><div class="progress-segment" id="prog3"></div></div>
+    <p class="progress-text"><span id="stepNum">1</span>/3 단계</p>
+  </div>
+  
+  <div class="content">
+    <div id="step1" class="animate-fade-up">
+      <h1 class="step-title">어떤 목적으로 글을 쓰시나요?</h1>
+      <p class="step-desc">당신의 역할에 맞는 추천을 제공해 드릴게요</p>
+      <div class="role-list">
+        <button class="role-item" data-role="writer"><div class="role-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" x2="2" y1="8" y2="22"/><line x1="17.5" x2="9" y1="15" y2="15"/></svg></div><div class="role-info"><div class="role-label">작가</div><div class="role-desc-text">글로 세상과 소통합니다</div></div><svg class="role-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></button>
+        <button class="role-item" data-role="creator"><div class="role-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg></div><div class="role-info"><div class="role-label">크리에이터</div><div class="role-desc-text">콘텐츠로 가치를 만듭니다</div></div><svg class="role-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></button>
+        <button class="role-item" data-role="startup"><div class="role-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div><div class="role-info"><div class="role-label">창업가</div><div class="role-desc-text">아이디어를 실현합니다</div></div><svg class="role-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></button>
+        <button class="role-item" data-role="researcher"><div class="role-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg></div><div class="role-info"><div class="role-label">연구자</div><div class="role-desc-text">지식을 탐구합니다</div></div><svg class="role-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></button>
+        <button class="role-item" data-role="other"><div class="role-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg></div><div class="role-info"><div class="role-label">기타</div><div class="role-desc-text">나만의 목적이 있어요</div></div><svg class="role-check" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></button>
+      </div>
+    </div>
+    
+    <div id="step2" class="animate-fade-up hidden">
+      <h1 class="step-title">메모 성향을 알려주세요</h1>
+      <p class="step-desc">어떤 종류의 메모를 주로 작성하시나요?</p>
+      <div class="paper-card">
+        <div class="slider-labels"><span class="tertiary">감정 중심</span><span class="secondary">업무 중심</span></div>
+        <input type="range" class="slider" id="memoSlider" min="0" max="100" value="50">
+        <p class="slider-hint" id="sliderHint">다양한 종류의 메모를 기록합니다</p>
+      </div>
+      
+
+    </div>
+    
+<div id="step3" class="animate-fade-up hidden">
+  <h1 class="step-title">개인 정보 입력</h1>
+  <p class="step-desc">서비스 제공을 위해 기본 정보를 입력하고 약관에 동의해주세요</p>
+
+  <div class="paper-card">
+    <div class="form-grid">
+      <div>
+        <label class="field-label" for="piName">이름</label>
+        <input type="text" id="piName" class="paper-input" placeholder="홍길동" autocomplete="name">
+        <p id="piNameHelp" class="helper-text hidden"></p>
+      </div>
+
+      <div>
+        <label class="field-label">생년월일</label>
+        <div class="birth-row">
+          <input type="tel" id="piBirthYYYY" class="paper-input birth-year" placeholder="YYYY" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="bday-year">
+          <span class="birth-sep">/</span>
+          <input type="tel" id="piBirthMM" class="paper-input birth-month" placeholder="MM" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="bday-month">
+          <span class="birth-sep">/</span>
+          <input type="tel" id="piBirthDD" class="paper-input birth-day" placeholder="DD" inputmode="numeric" pattern="[0-9]*" maxlength="2" autocomplete="bday-day">
+          <button type="button" id="birthPickBtn" class="mini-btn" aria-label="달력으로 생년월일 선택">달력</button>
+          <input type="date" id="piBirthPicker" aria-label="생년월일 달력 선택" style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0;">
+</div>
+        <input type="hidden" id="piBirth">
+        <p id="piBirthHelp" class="helper-text hidden"></p>
+      </div>
+
+      <div class="consent-card">
+        <div class="consent-head">
+          <div class="consent-title">약관 및 개인정보 동의</div>
+        </div>
+
+        <div class="consent-list">
+          <label class="consent-item" for="agreeTerms">
+            <input type="checkbox" id="agreeTerms">
+            <span class="consent-meta"><span class="consent-badge">필수</span><span class="consent-text">이용약관 동의</span></span>
+            <a class="consent-link" href="terms.html" target="_blank" rel="noopener">보기</a>
+          </label>
+
+          <label class="consent-item" for="agreePrivacy">
+            <input type="checkbox" id="agreePrivacy">
+            <span class="consent-meta"><span class="consent-badge">필수</span><span class="consent-text">개인정보 처리방침 동의</span></span>
+            <a class="consent-link" href="privacy.html" target="_blank" rel="noopener">보기</a>
+          </label>
+
+          <label class="consent-item" for="agreeAge">
+            <input type="checkbox" id="agreeAge">
+            <span class="consent-meta"><span class="consent-badge">필수</span><span class="consent-text">만 14세 이상입니다</span></span>
+          </label>
+        </div>
+
+        <p id="consentHelp" class="helper-text hidden"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div class="footer-nav">
+    <div class="footer-content">
+      <button id="backBtn" class="ink-button-outline" aria-label="이전"><span class="back-symbol">&lt;</span></button>
+      <button id="nextBtn" class="ink-button" disabled>다음<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg></button>
+    </div>
+  </div>
+
+
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+
+
+<script>
+  const AUTH_KEY = 'forword.auth.v1', THEME_KEY = 'forword.theme', STYLE_KEY = 'forword.style.v1';
+  
+  function normalizeProviderId(pid) {
+    if (!pid) return 'firebase';
+    if (pid === 'google.com') return 'google';
+    if (pid === 'password') return 'password';
+    return pid;
+  }
+
+  if (localStorage.getItem(THEME_KEY) === 'dark') document.documentElement.classList.add('dark');
+
+  const FIREBASE_CONFIG = {
+  "apiKey": "AIzaSyC4Xz5BQEt4SYaKqP8qU9ocac__VQbVgD0",
+  "authDomain": "forword-7af6f.firebaseapp.com",
+  "projectId": "forword-7af6f",
+  "storageBucket": "forword-7af6f.firebasestorage.app",
+  "messagingSenderId": "828952645956",
+  "appId": "1:828952645956:web:8c25750ea52be169650711",
+  "measurementId": "G-7VPEYGEZL3"
+};
+
+  const CONSENT_VERSION = 'v1-2025-12-17';
+
+  let fbAuth = null;
+  let db = null;
+
+  try {
+    if (typeof firebase !== 'undefined') {
+      if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      fbAuth = firebase.auth();
+      db = firebase.firestore();
+      fbAuth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+    }
+  } catch (e) {
+    console.warn('Firebase init failed:', e);
+  }
+
+  function $(id) { return document.getElementById(id); }
+
+  async function ensureUserDoc(user) {
+    if (!db || !user || !user.uid) return { onboardingComplete: false };
+    const ref = db.collection('users').doc(user.uid);
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+    const providerIds = Array.from(new Set((user.providerData || []).map(p => p && p.providerId).filter(Boolean)));
+
+    const base = {
+      uid: user.uid,
+      email: user.email || null,
+      displayName: user.displayName || null,
+      photoURL: user.photoURL || null,
+      providerIds,
+      lastLoginAt: now
+    };
+
+    const snap = await ref.get();
+    if (!snap.exists) {
+      await ref.set({ ...base, createdAt: now, onboardingComplete: false }, { merge: true });
+      return { onboardingComplete: false };
+    }
+    await ref.set(base, { merge: true });
+    return snap.data() || { onboardingComplete: false };
+  }
+
+  // --- Step State ---
+  let currentStep = 1;
+  let selectedRole = '';
+  let memoPreference = 50;
+
+  let step3Attempted = false;
+  const step3Touched = { name: false, birth: false, consent: false };
+
+  // Step elements
+  const nextBtn = $('nextBtn');
+  const backBtn = $('backBtn');
+
+  const step1El = $('step1');
+  const step2El = $('step2');
+  const step3El = $('step3');
+
+  const prog1 = $('prog1');
+  const prog2 = $('prog2');
+  const prog3 = $('prog3');
+  const stepNum = $('stepNum');
+
+  // Step 2
+  const slider = $('memoSlider');
+  const sliderHint = $('sliderHint');
+
+  // Step 3 - inputs
+  const nameInput = $('piName');
+  const birthYYYY = $('piBirthYYYY');
+  const birthMM = $('piBirthMM');
+  const birthDD = $('piBirthDD');
+  const birthPickBtn = $('birthPickBtn');
+  const birthPicker = $('piBirthPicker');
+  const birthHidden = $('piBirth');
+
+  const agreeAll = $('agreeAll');
+  const agreeTerms = $('agreeTerms');
+  const agreePrivacy = $('agreePrivacy');
+  const agreeAge = $('agreeAge');
+  const agreeMarketing = $('agreeMarketing');
+
+  const nameHelp = $('piNameHelp');
+  const birthHelp = $('piBirthHelp');
+  const consentHelp = $('consentHelp');
+
+  // --- Helpers ---
+  function setHelper(el, message, tone) {
+    if (!el) return;
+    if (!message) {
+      el.classList.add('hidden');
+      el.textContent = '';
+      el.classList.remove('error', 'success');
+      return;
+    }
+    el.textContent = message;
+    el.classList.remove('hidden');
+    el.classList.remove('error', 'success');
+    if (tone) el.classList.add(tone);
+  }
+
+  function shouldShowStep3Error(key, value) {
+    if (step3Attempted) return true;
+    if (step3Touched && step3Touched[key]) return true;
+    return ((value || '').toString().trim().length > 0);
+  }
+
+  function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
+
+  // --- Birth (YYYY/MM/DD) ---
+  function setupBirthInputs() {
+    const digitsOnly = (s) => (s || '').replace(/\D/g, '');
+
+    const items = [
+      { el: birthYYYY, max: 4, next: birthMM, prev: null },
+      { el: birthMM, max: 2, next: birthDD, prev: birthYYYY },
+      { el: birthDD, max: 2, next: null, prev: birthMM }
+    ];
+
+    items.forEach(({ el, max, next, prev }) => {
+      if (!el) return;
+
+      el.setAttribute('inputmode', 'numeric');
+      el.setAttribute('pattern', '[0-9]*');
+      el.setAttribute('maxlength', String(max));
+
+      el.addEventListener('input', () => {
+        const v = digitsOnly(el.value).slice(0, max);
+        if (el.value !== v) el.value = v;
+
+        step3Touched.birth = true;
+        updatePersonalUI();
+
+        if (v.length >= max && next) {
+          next.focus();
+          try { next.select(); } catch {}
+        }
+      });
+
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && el.value.length === 0 && prev) {
+          prev.focus();
+          try {
+            const end = prev.value.length;
+            prev.setSelectionRange(end, end);
+          } catch {}
+        }
+      });
+    });
+
+    // Paste: 19900123 / 1990-01-23 / 1990.01.23
+    if (birthYYYY) {
+      birthYYYY.addEventListener('paste', (e) => {
+        const t = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+        const digits = digitsOnly(t);
+        if (digits.length >= 8) {
+          e.preventDefault();
+          if (birthYYYY) birthYYYY.value = digits.slice(0, 4);
+          if (birthMM) birthMM.value = digits.slice(4, 6);
+          if (birthDD) birthDD.value = digits.slice(6, 8);
+
+          step3Touched.birth = true;
+          updatePersonalUI();
+          birthDD?.focus();
+        }
+      });
+    }
+  }
+
+  function initBirthPicker() {
+    if (!birthPicker) return;
+
+    // Local date (Asia/Seoul 포함) 기준으로 max 설정 (UTC 오차 방지)
+    const pad2 = (n) => String(n).padStart(2, '0');
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+    birthPicker.max = todayIso;
+
+    // 기존 값이 있으면 달력에도 반영
+    const iso = getBirthISO();
+    if (iso) birthPicker.value = iso;
+
+    const openPicker = () => {
+      try {
+        if (typeof birthPicker.showPicker === 'function') birthPicker.showPicker();
+        else birthPicker.focus();
+      } catch {
+        try { birthPicker.focus(); } catch {}
+      }
+    };
+
+    birthPickBtn?.addEventListener('click', () => openPicker());
+
+    // 선택 시 YYYY/MM/DD 박스 동기화
+    birthPicker.addEventListener('change', () => {
+      const v = (birthPicker.value || '').trim(); // YYYY-MM-DD
+      if (!v) return;
+      const parts = v.split('-');
+      if (parts.length === 3) {
+        if (birthYYYY) birthYYYY.value = parts[0];
+        if (birthMM) birthMM.value = parts[1];
+        if (birthDD) birthDD.value = parts[2];
+
+        step3Touched.birth = true;
+        updatePersonalUI();
+      }
+    });
+  }
+
+
+  setupBirthInputs();
+
+  initBirthPicker();
+
+function getBirthISO() {
+    const y = (birthYYYY?.value || '').trim();
+    const m = (birthMM?.value || '').trim();
+    const d = (birthDD?.value || '').trim();
+    if (y.length !== 4 || m.length !== 2 || d.length !== 2) return '';
+    const mm = String(clamp(parseInt(m, 10) || 0, 1, 12)).padStart(2, '0');
+    const dd = String(clamp(parseInt(d, 10) || 0, 1, 31)).padStart(2, '0');
+    return `${y}-${mm}-${dd}`;
+  }
+
+  function validateNameValue(v) {
+    const name = (v || '').trim();
+    if (!name) return '이름을 입력해주세요.';
+    if (name.length < 2) return '이름은 2글자 이상이어야 합니다.';
+    return '';
+  }
+
+  function validateBirthISO(iso) {
+    if (!iso) return '생년월일을 입력해주세요.';
+    const dt = new Date(iso + 'T00:00:00');
+    if (Number.isNaN(dt.getTime())) return '올바른 날짜를 입력해주세요.';
+    const today = new Date();
+    if (dt > today) return '미래 날짜는 입력할 수 없습니다.';
+    return '';
+  }
+
+  function getConsentState() {
+    return {
+      terms: !!agreeTerms?.checked,
+      privacy: !!agreePrivacy?.checked,
+      age14: !!agreeAge?.checked
+    };
+  }
+
+  function validateConsent() {
+    const c = getConsentState();
+    if (!c.terms || !c.privacy || !c.age14) return '필수 약관에 동의해주세요.';
+    return '';
+  }
+
+// --- UI Update ---
+  function updateUI() {
+    if (prog1) prog1.classList.toggle('active', currentStep >= 1);
+    if (prog2) prog2.classList.toggle('active', currentStep >= 2);
+    if (prog3) prog3.classList.toggle('active', currentStep >= 3);
+
+    if (stepNum) stepNum.textContent = String(currentStep);
+
+    if (step1El) step1El.classList.toggle('hidden', currentStep !== 1);
+    if (step2El) step2El.classList.toggle('hidden', currentStep !== 2);
+    if (step3El) step3El.classList.toggle('hidden', currentStep !== 3);
+
+    if (backBtn) backBtn.classList.toggle('hidden', currentStep === 1);
+
+    if (nextBtn) {
+      if (currentStep === 3) {
+        nextBtn.innerHTML = '시작하기<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+      } else {
+        nextBtn.innerHTML = '다음<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>';
+      }
+      nextBtn.disabled = (currentStep === 1 && !selectedRole);
+    }
+
+    if (currentStep === 3) updatePersonalUI();
+  }
+
+  function updateSliderHint(v) {
+    if (!sliderHint) return;
+    const n = Number(v);
+    if (n <= 20) sliderHint.textContent = '감정/일상 메모를 주로 기록합니다';
+    else if (n >= 80) sliderHint.textContent = '업무/계획 메모를 주로 기록합니다';
+    else sliderHint.textContent = '다양한 종류의 메모를 기록합니다';
+  }
+
+  function updatePersonalUI() {
+    const nameVal = (nameInput?.value || '').trim();
+    const nameErr = validateNameValue(nameVal);
+
+    const iso = getBirthISO();
+    if (birthHidden) birthHidden.value = iso;
+
+    const birthAny = ((birthYYYY?.value || '') + (birthMM?.value || '') + (birthDD?.value || '')).trim();
+    const birthErr = iso ? validateBirthISO(iso) : (birthAny ? '생년월일을 완성해주세요.' : '생년월일을 입력해주세요.');
+
+    const consentAny = !!(agreeTerms?.checked || agreePrivacy?.checked || agreeAge?.checked);
+    const consentErr = validateConsent();
+
+    if (shouldShowStep3Error('name', nameVal)) setHelper(nameHelp, nameErr, nameErr ? 'error' : null);
+    else setHelper(nameHelp, '', null);
+
+    if (shouldShowStep3Error('birth', birthAny)) setHelper(birthHelp, birthErr, birthErr ? 'error' : null);
+    else setHelper(birthHelp, '', null);
+
+    if (shouldShowStep3Error('consent', consentAny ? '1' : '')) setHelper(consentHelp, consentErr, consentErr ? 'error' : null);
+    else setHelper(consentHelp, '', null);
+  }
+
+  function isStep3Complete() {
+    const nameErr = validateNameValue((nameInput?.value || '').trim());
+    const iso = getBirthISO();
+    const birthAny = ((birthYYYY?.value || '') + (birthMM?.value || '') + (birthDD?.value || '')).trim();
+    const birthErr = iso ? validateBirthISO(iso) : (birthAny ? '생년월일을 완성해주세요.' : '생년월일을 입력해주세요.');
+    const consentErr = validateConsent();
+    return !nameErr && !birthErr && !consentErr;
+  }
+
+  async function finishOnboarding() {
+    const user = fbAuth?.currentUser;
+    if (!user) {
+        // Delay redirect slightly to avoid auth hydration race causing ping-pong loops.
+        if (__fw_authGateTimer) clearTimeout(__fw_authGateTimer);
+        __fw_authGateTimer = setTimeout(() => {
+          try {
+            if (!fbAuth.currentUser) window.location.replace('login.html');
+          } catch (e) {
+            window.location.replace('login.html');
+          }
+        }, 900);
+        return;
+      }
+
+      if (__fw_authGateTimer) { clearTimeout(__fw_authGateTimer); __fw_authGateTimer = null; }
+
+
+    const pid = normalizeProviderId(user.providerData?.[0]?.providerId || 'firebase');
+    const name = (nameInput?.value || '').trim();
+    const birthISO = getBirthISO();
+    const consents = getConsentState();
+    const now = firebase.firestore.FieldValue.serverTimestamp();
+
+    if (db) {
+      await db.collection('users').doc(user.uid).set({
+        name,
+        birthdate: birthISO,
+        role: selectedRole || null,
+        memoPreference: Number(memoPreference) || 50,
+
+        consents,
+        consentVersion: CONSENT_VERSION,
+        consentAt: now,
+
+        onboardingComplete: true,
+        updatedAt: now
+      }, { merge: true });
+    }
+
+    localStorage.setItem(AUTH_KEY, JSON.stringify({
+      uid: user.uid,
+      email: user.email || null,
+      displayName: user.displayName || name || null,
+      provider: pid,
+      onboardingComplete: true,
+
+      role: selectedRole || null,
+      memoPreference: Number(memoPreference) || 50,
+      name,
+      birthdate: birthISO,
+
+      consents,
+      consentVersion: CONSENT_VERSION
+    }));
+
+    if (!localStorage.getItem(STYLE_KEY)) {
+      localStorage.setItem(STYLE_KEY, JSON.stringify({ tone: 'neutral', length: 'medium' }));
+    }
+
+    window.location.replace('home.html');
+  }
+
+  // --- Event Wiring ---
+  document.querySelectorAll('.role-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedRole = btn.getAttribute('data-role') || '';
+      document.querySelectorAll('.role-item').forEach(b => b.classList.toggle('selected', b === btn));
+      updateUI();
+    });
+  });
+
+  if (slider) {
+    slider.addEventListener('input', () => {
+      memoPreference = Number(slider.value);
+      updateSliderHint(memoPreference);
+    });
+    updateSliderHint(slider.value);
+  }
+
+  if (nameInput) {
+    nameInput.addEventListener('input', () => {
+      step3Touched.name = true;
+      updatePersonalUI();
+    });
+    nameInput.addEventListener('blur', () => {
+      step3Touched.name = true;
+      updatePersonalUI();
+    });
+  }
+
+  const consentEls = [agreeTerms, agreePrivacy, agreeAge].filter(Boolean);
+  consentEls.forEach(el => {
+    el.addEventListener('change', () => {
+      step3Touched.consent = true;
+      updatePersonalUI();
+    });
+  });
+
+  if (backBtn) {
+    backBtn.addEventListener('click', () => {
+      if (currentStep > 1) {
+        currentStep -= 1;
+        updateUI();
+      } else {
+        if (history.length > 1) history.back();
+        else window.location.replace('signup.html');
+      }
+    });
+  }
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', async () => {
+      if (currentStep === 1) {
+        if (!selectedRole) return;
+        currentStep = 2;
+        updateUI();
+        return;
+      }
+
+      if (currentStep === 2) {
+        currentStep = 3;
+        updateUI();
+        return;
+      }
+
+      step3Attempted = true;
+      updatePersonalUI();
+
+      if (!isStep3Complete()) {
+        const nameErr = validateNameValue((nameInput?.value || '').trim());
+        const iso = getBirthISO();
+        const birthAny = ((birthYYYY?.value || '') + (birthMM?.value || '') + (birthDD?.value || '')).trim();
+        const birthErr = iso ? validateBirthISO(iso) : (birthAny ? '생년월일을 완성해주세요.' : '생년월일을 입력해주세요.');
+        const consentErr = validateConsent();
+
+        if (nameErr && nameInput) nameInput.focus();
+        else if (birthErr && birthYYYY) birthYYYY.focus();
+        else if (consentErr && agreeTerms) agreeTerms.focus();
+
+        return;
+      }
+
+      try {
+        await finishOnboarding();
+      } catch (e) {
+        console.warn('Finish onboarding failed:', e);
+        setHelper(consentHelp, '저장 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.', 'error');
+      }
+    });
+  }
+  let __fw_authGateTimer = null;
+
+  // Firebase auth gate + prefill
+  if (fbAuth) {
+    fbAuth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        // Delay redirect slightly to avoid auth hydration race causing ping-pong loops.
+        if (__fw_authGateTimer) clearTimeout(__fw_authGateTimer);
+        __fw_authGateTimer = setTimeout(() => {
+          try {
+            if (!fbAuth.currentUser) window.location.replace('login.html');
+          } catch (e) {
+            window.location.replace('login.html');
+          }
+        }, 900);
+        return;
+      }
+
+      if (__fw_authGateTimer) { clearTimeout(__fw_authGateTimer); __fw_authGateTimer = null; }
+
+
+      try {
+        const profile = await ensureUserDoc(user);
+
+        if (profile && profile.onboardingComplete) {
+          localStorage.setItem(AUTH_KEY, JSON.stringify({
+            uid: user.uid,
+            email: user.email || null,
+            displayName: user.displayName || profile?.name || null,
+            provider: normalizeProviderId(user.providerData?.[0]?.providerId || 'firebase'),
+            onboardingComplete: true
+          }));
+          window.location.replace('home.html');
+          return;
+        }
+
+        if (nameInput && !nameInput.value && (profile?.name || user.displayName)) nameInput.value = profile?.name || user.displayName;
+
+        if (profile?.birthdate && typeof profile.birthdate === 'string') {
+          const parts = profile.birthdate.split('-');
+          if (parts.length === 3) {
+            if (birthYYYY) birthYYYY.value = parts[0] || '';
+            if (birthMM) birthMM.value = (parts[1] || '').padStart(2, '0');
+            if (birthDD) birthDD.value = (parts[2] || '').padStart(2, '0');
+            if (birthHidden) birthHidden.value = profile.birthdate;
+          }
+        }
+
+        const c = profile?.consents;
+        if (c) {
+          if (agreeTerms) agreeTerms.checked = !!c.terms;
+          if (agreePrivacy) agreePrivacy.checked = !!c.privacy;
+          if (agreeAge) agreeAge.checked = !!c.age14;
+        }
+
+} catch (e) {
+        console.warn('Profile preload failed:', e);
+      }
+
+      updateUI();
+    });
+  } else {
+    updateUI();
+  }
+</script>
+
+</body>
+</html>

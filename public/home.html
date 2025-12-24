@@ -1,0 +1,2659 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Home | FOR:WORD Standalone</title>
+    <meta
+      name="description"
+      content="빠르게 메모와 링크를 모으고, 세컨드 브레인의 인박스로 사용하는 FOR:WORD 홈"
+    />
+
+    <!-- 폰트 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --background: 220 40% 98%;
+        --foreground: 220 30% 20%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 220 30% 20%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 220 30% 20%;
+
+        --primary: 90 60% 70%;
+        --primary-foreground: 90 40% 20%;
+
+        --secondary: 320 70% 88%;
+        --secondary-foreground: 320 40% 25%;
+
+        --muted: 220 25% 96%;
+        --muted-foreground: 220 15% 50%;
+
+        --accent: 200 75% 80%;
+        --accent-foreground: 200 40% 25%;
+
+        --destructive: 350 70% 65%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 220 20% 90%;
+        --input: 220 20% 90%;
+        --ring: 90 60% 70%;
+
+        --radius: 1rem;
+      }
+
+      body,
+      input,
+      textarea,
+      select,
+      button {
+        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont,
+          'Segoe UI', sans-serif;
+      }
+
+      *,
+      ::before,
+      ::after {
+        box-sizing: border-box;
+        border-color: hsl(var(--border));
+      }
+
+      body {
+        margin: 0;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
+      }
+
+      .memo-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: 136px minmax(0, 1fr) 34px;
+        column-gap: 0.9rem;
+        align-items: start;
+
+        padding: 0.85rem 0.9rem;
+        border-radius: 0.9rem;
+
+        transition: transform 160ms ease, box-shadow 160ms ease,
+          border-color 160ms ease, background 160ms ease;
+        will-change: transform;
+      }
+
+      .memo-left {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        min-width: 0;
+      }
+
+      .memo-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 11px;
+        color: #9aa0b0;
+      }
+
+      .memo-meta .memo-type-label {
+        font-weight: 700;
+        letter-spacing: 0.12em;
+      }
+
+      .memo-time {
+        font-size: 11px;
+        color: hsl(var(--muted-foreground));
+        line-height: 1.2;
+      }
+
+      .memo-thumb {
+        width: 100%;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 0.75rem;
+        border: 1px solid hsl(var(--border));
+        background: hsl(var(--muted));
+      }
+
+      .memo-mid {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .memo-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
+
+      .memo-url {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 12px;
+        color: hsl(var(--foreground) / 0.78);
+        text-decoration: none;
+      }
+
+      .memo-url:hover {
+        text-decoration: underline;
+      }
+
+      .memo-right {
+        display: flex;
+        justify-content: flex-end;
+        align-items: flex-start;
+      }
+
+      .memo-card::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        pointer-events: none;
+        opacity: 0;
+        background: radial-gradient(
+            1200px 320px at 15% 0%,
+            hsl(var(--secondary) / 0.14),
+            transparent 55%
+          ),
+          radial-gradient(
+            900px 260px at 85% 10%,
+            hsl(var(--accent) / 0.12),
+            transparent 55%
+          );
+        transition: opacity 180ms ease;
+      }
+
+      .memo-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 42px rgba(15, 23, 42, 0.12);
+        border-color: hsl(var(--ring) / 0.35);
+      }
+
+      .memo-card:hover::before {
+        opacity: 1;
+      }
+
+      .memo-card:focus-within {
+        box-shadow: 0 0 0 3px hsl(var(--ring) / 0.18),
+          0 14px 36px rgba(15, 23, 42, 0.1);
+        border-color: hsl(var(--ring) / 0.45);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .memo-card,
+        .memo-card::before {
+          transition: none !important;
+        }
+        .memo-card:hover {
+          transform: none;
+        }
+      }
+
+      .memo-text {
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+
+        line-height: 1.55;
+        transition: color 160ms ease;
+      }
+
+      @media (min-width: 640px) {
+        .memo-text {
+          -webkit-line-clamp: 2;
+        }
+      }
+
+      .memo-modal-inner {
+        aspect-ratio: 9 / 16;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .memo-modal-body {
+        overflow-y: auto;
+      }
+
+      .home-grid {
+        grid-template-columns: 1fr;
+      }
+      @media (min-width: 1024px) {
+        .home-grid {
+          grid-template-columns: 5fr 3fr 2fr;
+          align-items: start;
+        }
+      }
+
+      .reco-card {
+        position: relative;
+        border: 1px solid hsl(var(--border));
+        border-radius: 1rem;
+        background: hsl(var(--card));
+        overflow: hidden;
+        text-align: left;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      }
+      .reco-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 36px rgba(15, 23, 42, 0.1);
+      }
+      .reco-media {
+        height: 108px;
+        padding: 0.75rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        border-bottom: 1px solid hsl(var(--border));
+      }
+      .reco-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.65);
+        border: 1px solid rgba(255, 255, 255, 0.65);
+        font-size: 0.72rem;
+        color: hsl(var(--muted-foreground));
+        font-weight: 700;
+        backdrop-filter: blur(6px);
+      }
+      .reco-count {
+        font-size: 1.6rem;
+        font-weight: 900;
+        letter-spacing: -0.02em;
+        padding: 0.15rem 0.55rem;
+        border-radius: 0.75rem;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+        color: hsl(var(--foreground));
+        font-variant-numeric: tabular-nums;
+        backdrop-filter: blur(6px);
+      }
+      .reco-body {
+        padding: 0.75rem 0.85rem 0.85rem;
+      }
+      .reco-title {
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+      .reco-sub {
+        margin-top: 0.25rem;
+        font-size: 0.78rem;
+        color: hsl(var(--muted-foreground));
+        line-height: 1.35;
+      }
+    </style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              border: 'hsl(var(--border))',
+              input: 'hsl(var(--input))',
+              ring: 'hsl(var(--ring))',
+              background: 'hsl(var(--background))',
+              foreground: 'hsl(var(--foreground))',
+              primary: {
+                DEFAULT: 'hsl(var(--primary))',
+                foreground: 'hsl(var(--primary-foreground))',
+              },
+              secondary: {
+                DEFAULT: 'hsl(var(--secondary))',
+                foreground: 'hsl(var(--secondary-foreground))',
+              },
+              destructive: {
+                DEFAULT: 'hsl(var(--destructive))',
+                foreground: 'hsl(var(--destructive-foreground))',
+              },
+              muted: {
+                DEFAULT: 'hsl(var(--muted))',
+                foreground: 'hsl(var(--muted-foreground))',
+              },
+              accent: {
+                DEFAULT: 'hsl(var(--accent))',
+                foreground: 'hsl(var(--accent-foreground))',
+              },
+              popover: {
+                DEFAULT: 'hsl(var(--popover))',
+                foreground: 'hsl(var(--popover-foreground))',
+              },
+              card: {
+                DEFAULT: 'hsl(var(--card))',
+                foreground: 'hsl(var(--card-foreground))',
+              },
+            },
+            borderRadius: {
+              lg: 'var(--radius)',
+              md: 'calc(var(--radius) - 2px)',
+              sm: 'calc(var(--radius) - 4px)',
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E✦%3C/text%3E%3C/svg%3E"
+    />
+  </head>
+
+  <body class="min-h-screen bg-background text-foreground">
+    <nav class="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div class="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center gap-8">
+            <a
+              href="index.html"
+              class="text-xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent"
+            >
+              FOR:WORD
+            </a>
+            <div class="hidden md:flex gap-1" id="nav-links"></div>
+          </div>
+          <div class="flex items-center gap-3">
+            <button
+              id="logout-btn"
+              class="inline-flex items-center gap-2 rounded-full border border-border bg-white/70 px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted transition"
+            >
+              <i data-lucide="log-out" class="w-4 h-4"></i>
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12 py-8">
+      <div class="space-y-6">
+        <header
+          class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="space-y-1">
+            <h1 class="text-3xl font-bold">Home</h1>
+          </div>
+        </header>
+
+        <div class="grid gap-6 home-grid">
+          <section class="space-y-4">
+            <div
+              class="rounded-2xl border border-[#DDEFD9] bg-[#F9FFF7] shadow-sm overflow-hidden"
+            >
+              <div
+                class="border-b border-[#E4F4DD] bg-gradient-to-r from-[#F3FFF0] to-[#F9FFF7] px-6 py-4 flex items-start gap-3"
+              >
+                <div
+                  class="mt-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#E3F7D9] text-[#7BCB5A] shadow-inner"
+                >
+                  <i data-lucide="zap" class="w-4 h-4"></i>
+                </div>
+                <div class="space-y-1">
+                  <p
+                    class="text-xs font-semibold tracking-widest text-[#8ABF7F]"
+                  >
+                    QUICK CAPTURE
+                  </p>
+                  <p class="text-xs text-[#95AF90]">
+                    지나가는 메모와 링크를 빠르게 남기고, 자동으로 태그가 붙은 인박스로
+                    모입니다.
+                  </p>
+                </div>
+              </div>
+
+              <div class="px-6 py-5 space-y-4">
+                <textarea
+                  id="quick-text"
+                  rows="3"
+                  class="w-full rounded-2xl border-2 border-[#CFEBC5] bg-white/80 px-4 py-3 text-sm outline-none focus:ring-0 focus:border-[#9AD88A] placeholder:text-[#B7C9B0]"
+                  placeholder="지나가듯 떠오른 생각이나 링크에 대해 자유롭게 적어보세요..."
+                ></textarea>
+
+                <div class="flex items-center justify-between mt-1">
+                  <p class="text-[11px] text-[#A4B8A0]">
+                    최소한으로 적고, 필요할 때만 세부 옵션을 열어도 괜찮아요.
+                  </p>
+                  <button
+                    type="button"
+                    id="quick-advanced-toggle"
+                    class="ml-2 inline-flex items-center gap-1 rounded-full border border-[#D5EBD0] bg-white/80 px-3 py-1 text-[11px] text-[#7FAE72] hover:bg-[#F3FFF0]"
+                  >
+                    <span>세부 옵션 열기</span>
+                  </button>
+                </div>
+
+                <div id="quick-advanced" class="mt-3 space-y-3 hidden">
+                  <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-1 space-y-1">
+                      <label
+                        for="quick-url"
+                        class="text-[11px] font-medium text-[#9EB89A]"
+                        >링크 (선택)</label
+                      >
+                      <input
+                        id="quick-url"
+                        type="url"
+                        class="w-full rounded-2xl border border-[#D5EBD0] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#B3E4A3] focus:border-[#B3E4A3]"
+                        placeholder="https://..."
+                      />
+                    </div>
+
+                    <div class="flex-1 space-y-1">
+                      <label
+                        for="quick-type"
+                        class="text-[11px] font-medium text-[#9EB89A]"
+                        >타입</label
+                      >
+                      <select
+                        id="quick-type"
+                        class="w-full rounded-2xl border border-[#D5EBD0] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#B3E4A3] focus:border-[#B3E4A3]"
+                      >
+                        <option value="note">메모</option>
+                        <option value="link">링크</option>
+                        <option value="youtube">유튜브</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-1 space-y-1">
+                      <label
+                        for="quick-category"
+                        class="text-[11px] font-medium text-[#9EB89A]"
+                        >분류 태그</label
+                      >
+                      <select
+                        id="quick-category"
+                        class="w-full rounded-2xl border border-[#D5EBD0] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#B3E4A3] focus:border-[#B3E4A3]"
+                      >
+                        <option value="">선택 안 함</option>
+                        <option value="personal">개인용</option>
+                        <option value="work">업무용</option>
+                        <option value="study">공부/연구</option>
+                        <option value="etc">기타</option>
+                      </select>
+                    </div>
+                    <div class="w-full sm:w-40 space-y-1">
+                      <label
+                        for="quick-importance"
+                        class="text-[11px] font-medium text-[#9EB89A]"
+                        >중요도</label
+                      >
+                      <select
+                        id="quick-importance"
+                        class="w-full rounded-2xl border border-[#D5EBD0] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#B3E4A3] focus:border-[#B3E4A3]"
+                      >
+                        <option value="normal">보통</option>
+                        <option value="high">중요</option>
+                        <option value="low">낮음</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="space-y-1">
+                    <label
+                      for="quick-tags"
+                      class="text-[11px] font-medium text-[#9EB89A]"
+                      >추가 태그</label
+                    >
+                    <input
+                      id="quick-tags"
+                      type="text"
+                      class="w-full rounded-2xl border border-[#D5EBD0] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#B3E4A3] focus:border-[#B3E4A3]"
+                      placeholder="개발, 아이디어, 개인회고 처럼 쉼표로 구분해서 입력"
+                    />
+                  </div>
+
+                  <div class="flex items-center gap-3">
+                    <div class="flex-1 space-y-1">
+                      <label
+                        for="quick-image"
+                        class="text-[11px] font-medium text-[#9EB89A]"
+                        >이미지 (선택)</label
+                      >
+                      <input
+                        id="quick-image"
+                        type="file"
+                        accept="image/*"
+                        class="w-full rounded-2xl border border-[#D5EBD0] bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#B3E4A3] focus:border-[#B3E4A3]"
+                      />
+                    </div>
+                    <p class="hidden sm:block text-[11px] text-[#A4B8A0]">
+                      스크린샷, 사진 등을 함께 보관할 수 있어요.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  id="quick-save"
+                  class="mt-1 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#8FD4B9] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#7AC6A8] active:scale-[0.99] transition"
+                >
+                  <span class="text-lg leading-none">+</span>
+                  인박스에 추가
+                </button>
+
+                <p class="text-[11px] text-[#A4B8A0] flex items-center gap-1">
+                  <span class="text-base">💡</span>
+                  텍스트에서 간단히 키워드를 뽑아서 태그로 자동 저장되고, 필요할 때만
+                  FOR:WORD가 정교하게 정리합니다.
+                </p>
+              </div>
+            </div>
+
+            <div
+              class="rounded-2xl border border-[#E4EBF7] bg-gradient-to-r from-[#F7FBFF] to-[#FFF7FF] shadow-sm overflow-hidden"
+            >
+              <div
+                class="px-6 py-4 border-b border-[#E5EDF8] flex items-center justify-between"
+              >
+                <div class="flex items-center gap-2">
+                  <div
+                    class="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 border border-[#E0E7F5]"
+                  >
+                    <i data-lucide="inbox" class="w-4 h-4 text-[#9AAAD5]"></i>
+                  </div>
+                  <div>
+                    <p
+                      class="text-xs font-semibold tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-[#A1B7FF] to-[#F4A9E5]"
+                    >
+                      INBOX
+                    </p>
+                    <p class="text-[11px] text-[#A3AEC5]">
+                      저장된 메모들이 자동으로 인박스에 쌓입니다.
+                    </p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span
+                    class="tag-chip rounded-full bg-white/80 border border-[#E0E7F5] px-3 py-1 text-[11px] text-[#7F8BB0] font-medium"
+                  >
+                    <span id="memo-count">0개</span>
+                  </span>
+                  <button
+                    id="clear-memos"
+                    class="inline-flex items-center gap-1 rounded-full border border-transparent px-3 py-1 text-[11px] text-[#9AAAD5] hover:border-[#D4DEEE] hover:bg-white/60 transition-colors"
+                  >
+                    <i data-lucide="trash-2" class="h-3 w-3"></i>
+                    전체 삭제
+                  </button>
+                </div>
+              </div>
+
+              <div class="px-6 py-4">
+                <div id="memo-list" class="grid grid-cols-1 gap-4 text-sm"></div>
+
+                <div
+                  id="memo-empty"
+                  class="py-10 flex flex-col items-center justify-center text-center gap-3 text-sm text-muted-foreground"
+                >
+                  <div
+                    class="flex h-12 w-12 items-center justify-center rounded-full bg-white/80 border border-dashed border-[#D4DEEE]"
+                  >
+                    <i
+                      data-lucide="archive"
+                      class="w-6 h-6 text-[#9AAAD5]"
+                    ></i>
+                  </div>
+                  <div class="space-y-1">
+                    <p class="text-xs text-[#9AAAD5]">
+                      아직 저장된 메모가 없습니다.
+                    </p>
+                    <p class="text-xs text-muted-foreground">
+                      위에서 첫 메모를 추가해 보세요.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            <div class="rounded-2xl border border-border bg-card shadow-sm overflow-hidden">
+              <div class="px-6 py-4 border-b border-border flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div
+                    class="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 border border-border"
+                  >
+                    <i
+                      data-lucide="sparkles"
+                      class="w-4 h-4 text-muted-foreground"
+                    ></i>
+                  </div>
+                  <div>
+                    <p class="text-xs font-semibold tracking-widest text-muted-foreground">
+                      RECOMMENDED
+                    </p>
+                    <p class="text-[11px] text-muted-foreground">
+                      온톨로지 개념별로 쌓인 메모를 카드로 묶어 보여줍니다.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  id="reco-refresh"
+                  class="inline-flex items-center gap-1 rounded-full border border-border bg-white/60 px-3 py-1 text-[11px] text-muted-foreground hover:bg-muted/60 transition"
+                  type="button"
+                >
+                  <i data-lucide="refresh-cw" class="h-3 w-3"></i>
+                  새로고침
+                </button>
+              </div>
+
+              <div class="px-6 py-4">
+                <div
+                  id="reco-empty"
+                  class="py-8 text-center text-xs text-muted-foreground hidden"
+                >
+                  아직 추천을 만들 데이터가 없습니다. 먼저 메모를 몇 개 쌓아보세요.
+                </div>
+
+                <div id="reco-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+
+                <p class="mt-3 text-[11px] text-muted-foreground">
+                  숫자는 해당 개념에 연결된 메모 수입니다. (초기에는 대표 태그/메인
+                  토픽 기준으로 묶습니다.)
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section class="space-y-4">
+            <div
+              class="rounded-xl bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-md hover:shadow-lg transition-all"
+            >
+              <div class="p-6 text-center">
+                <p class="text-sm font-medium opacity-90 mb-2">NOW</p>
+                <p
+                  id="clock-time"
+                  class="font-mono text-5xl font-bold tracking-[0.2em] tabular-nums"
+                  style="font-variant-numeric: tabular-nums;"
+                >
+                  00:00
+                </p>
+                <p id="clock-date" class="mt-2 text-xs opacity-80">
+                  YYYY.MM.DD (요일)
+                </p>
+                <p class="text-xs opacity-75 mt-3">당신이 쓰고 있는 시간</p>
+              </div>
+            </div>
+
+            <div id="calendar-card" class="rounded-xl border bg-card p-4"></div>
+          </section>
+        </div>
+      </div>
+    </main>
+
+    <div
+      id="memo-modal"
+      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40"
+    >
+      <div
+        class="memo-modal-inner bg-card rounded-2xl max-w-xs w-[70%] sm:max-w-sm sm:w-[50%] md:max-w-md md:w-[40%] shadow-xl border border-border relative p-6"
+      >
+        <button
+          id="memo-modal-close"
+          class="absolute right-3 top-3 inline-flex h-7 w-7 items-center justify-center rounded-full border border-border bg-white/70 hover:bg-muted transition"
+        >
+          <i data-lucide="x" class="w-4 h-4 text-muted-foreground"></i>
+        </button>
+
+        <div class="space-y-2 memo-modal-body pr-1 mt-4">
+          <div class="flex items-start justify-between gap-4">
+            <div class="space-y-1">
+              <p
+                id="modal-type"
+                class="text-[11px] font-semibold tracking-[0.18em] text-muted-foreground uppercase"
+              >
+                MEMO
+              </p>
+              <p id="modal-time" class="text-xs text-muted-foreground">
+                00.00 00:00
+              </p>
+              <div id="modal-meta" class="mt-1 flex flex-wrap gap-1" data-card-tags></div>
+            </div>
+          </div>
+
+          <div id="modal-image-wrapper" class="mt-3 hidden">
+            <img
+              id="modal-image"
+              src=""
+              alt=""
+              class="w-full max-h-64 object-contain rounded-lg border border-border"
+            />
+          </div>
+
+          <p
+            id="modal-text"
+            class="mt-3 text-sm text-foreground whitespace-pre-wrap break-words"
+          ></p>
+
+          <div id="modal-url-wrapper" class="mt-3 hidden">
+            <a
+              id="modal-url"
+              href="#"
+              target="_blank"
+              class="inline-flex items-center gap-1 text-xs text-primary hover:underline break-all"
+            >
+              <i data-lucide="link-2" class="h-3 w-3"></i>
+              링크 열기
+            </a>
+          </div>
+
+          <div
+            id="modal-tags-wrapper"
+            class="mt-3 hidden flex flex-wrap gap-1"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const AUTH_KEY = 'forword.auth.v1';
+      const THEME_KEY = 'forword.theme';
+      if (localStorage.getItem(THEME_KEY) === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+
+      const firebaseConfig = {
+        apiKey: 'AIzaSyC4Xz5BQEt4SYaKqP8qU9ocac__VQbVgD0',
+        authDomain: 'forword-7af6f.firebaseapp.com',
+        projectId: 'forword-7af6f',
+        storageBucket: 'forword-7af6f.firebasestorage.app',
+        messagingSenderId: '828952645956',
+        appId: '1:828952645956:web:8c25750ea52be169650711',
+        measurementId: 'G-7VPEYGEZL3',
+      };
+
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+      const auth = firebase.auth();
+
+      let __fw_authGateTimer = null;
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+      const db = firebase.firestore();
+      const functions = firebase.app().functions('asia-northeast3');
+
+      let currentUser = null;
+      let memosCache = [];
+
+      let ONTOLOGY_DATA = null;
+      let ONTOLOGY_CONCEPTS = {};
+      let ONTOLOGY_ROLES = [];
+      let ONTOLOGY_FLOW_STAGES = [];
+      let ONTOLOGY_ARTIFACT_TYPES = [];
+      let ONTOLOGY_RELATION_TYPES = [];
+      let ONTOLOGY_PROMPT_HINTS = null;
+
+      function normalizeForMatch(str) {
+        if (!str) return '';
+        return String(str)
+          .toLowerCase()
+          .replace(
+            /[\s\r\n\t~`!@#$%^&*()\-\_=+\[\]{}\\|;:'",.<>/?]/g,
+            ''
+          );
+      }
+
+      async function loadOntology() {
+        if (ONTOLOGY_DATA) return ONTOLOGY_DATA;
+        try {
+          if (window.location.protocol === 'file:') {
+            console.warn(
+              'file:// 환경에서는 ontology.json을 fetch할 수 없습니다. 온톨로지 없이 동작합니다.'
+            );
+            return null;
+          }
+          const res = await fetch('ontology.json', { cache: 'no-cache' });
+          if (!res.ok) {
+            console.warn('ontology.json 로드 실패:', res.status);
+            return null;
+          }
+          const data = await res.json();
+          ONTOLOGY_DATA = data;
+
+          ONTOLOGY_ROLES = Array.isArray(data.roles) ? data.roles : [];
+          ONTOLOGY_FLOW_STAGES = Array.isArray(data.flowStages)
+            ? data.flowStages
+            : [];
+          ONTOLOGY_ARTIFACT_TYPES = Array.isArray(data.artifactTypes)
+            ? data.artifactTypes
+            : [];
+          ONTOLOGY_RELATION_TYPES = Array.isArray(data.relationTypes)
+            ? data.relationTypes
+            : [];
+          ONTOLOGY_PROMPT_HINTS =
+            data && typeof data.promptHints === 'object'
+              ? data.promptHints
+              : null;
+
+          const concepts = {};
+
+          if (Array.isArray(data.tagFamilies)) {
+            data.tagFamilies.forEach((family) => {
+              const familyId = family.id || family.name;
+              if (!familyId || !Array.isArray(family.tags)) return;
+              family.tags.forEach((tag) => {
+                const id = tag.id || tag.key || tag.name;
+                if (!id || concepts[id]) return;
+                const label = tag.label || tag.name || id;
+                let kw = [];
+                if (Array.isArray(tag.keywords)) kw = tag.keywords.slice();
+                else if (typeof tag.keywords === 'string') {
+                  kw = tag.keywords
+                    .split(/[,\n]/)
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+                }
+                concepts[id] = { id, familyId, label, keywords: kw };
+              });
+            });
+          }
+
+          function addFromDim(dimKey) {
+            const dim = data[dimKey];
+            if (!dim || typeof dim !== 'object') return;
+            Object.entries(dim).forEach(([key, obj]) => {
+              if (!obj || typeof obj !== 'object') return;
+              const id = obj.id || `${dimKey}:${key}`;
+              if (concepts[id]) return;
+              const label = obj.label || key;
+              const kwArr = [];
+              if (Array.isArray(obj.keywords)) kwArr.push(...obj.keywords);
+              if (Array.isArray(obj.synonyms)) kwArr.push(...obj.synonyms);
+              kwArr.push(label, key);
+              concepts[id] = { id, dim: dimKey, key, label, keywords: kwArr };
+            });
+          }
+
+          ['domains', 'workflow', 'artifact', 'meta'].forEach(addFromDim);
+
+          ONTOLOGY_CONCEPTS = concepts;
+          console.log(
+            'ONTOLOGY loaded. concept count =',
+            Object.keys(ONTOLOGY_CONCEPTS).length
+          );
+        } catch (err) {
+          console.error('ontology.json 로드 오류:', err);
+          ONTOLOGY_DATA = null;
+          ONTOLOGY_CONCEPTS = {};
+        }
+        return ONTOLOGY_DATA;
+      }
+
+      function simpleKeywords(text) {
+        if (!text) return [];
+        const JO =
+          /(?:들)?(?:을|를|이|가|은|는|에|에서|으로|로|와|과|의|도|만|까지|부터|처럼|에게|께|한테|마다|라도|조차|밖에|나|이나|이나마)?$/;
+        const stopKo = new Set([
+          '그리고',
+          '그래서',
+          '그러면',
+          '하지만',
+          '이런',
+          '저런',
+          '그런',
+          '및',
+          '또는',
+          '혹은',
+          '등',
+          '것',
+          '거',
+          '수',
+          '오늘',
+          '지금',
+          '메모',
+          '링크',
+          '인박스',
+          '자동',
+          '태그',
+          '작성',
+          '정리',
+          '수집',
+          '모음',
+          '기록',
+          '저장',
+          '기능',
+          '페이지',
+        ]);
+        const stopEn = new Set([
+          'and',
+          'or',
+          'but',
+          'so',
+          'then',
+          'also',
+          'etc',
+          'the',
+          'a',
+          'an',
+          'to',
+          'of',
+          'for',
+          'in',
+          'on',
+          'at',
+          'with',
+          'by',
+          'from',
+          'as',
+          'it',
+          'this',
+          'that',
+        ]);
+        const badAdv = new Set(['빠르게', '빨리', '정말', '아주', '매우', '너무']);
+        const raw = String(text).toLowerCase().replace(/\n/g, ' ');
+        const toks = raw
+          .split(/[\s,.;:!?()"\'[\]{}<>|\\/]+/)
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .map((t) => t.replace(JO, ''))
+          .filter((t) => t.length >= 2 && !/^[0-9]+$/.test(t))
+          .filter((t) => !stopKo.has(t) && !stopEn.has(t) && !badAdv.has(t));
+        const uniq = [];
+        const seen = new Set();
+        for (const t of toks) {
+          if (!seen.has(t)) {
+            seen.add(t);
+            uniq.push(t);
+          }
+          if (uniq.length >= 16) break;
+        }
+        const grams = new Set(uniq);
+        for (let i = 0; i < uniq.length - 1; i++) {
+          const a = uniq[i],
+            b = uniq[i + 1];
+          if (
+            a.length >= 2 &&
+            b.length >= 2 &&
+            !badAdv.has(a) &&
+            !badAdv.has(b) &&
+            !stopKo.has(a) &&
+            !stopKo.has(b)
+          ) {
+            const bi = a + ' ' + b;
+            if (bi.replace(/\s/g, '').length >= 4) grams.add(bi);
+          }
+          if (grams.size >= 20) break;
+        }
+        return Array.from(grams).slice(0, 8);
+      }
+
+      function ontologyKeywords(text) {
+        if (!text || !Object.keys(ONTOLOGY_CONCEPTS).length) return [];
+        const normalizedText = normalizeForMatch(text);
+        if (!normalizedText) return [];
+        const matched = new Set();
+
+        Object.entries(ONTOLOGY_CONCEPTS).forEach(([id, concept]) => {
+          const labelNorm = normalizeForMatch(concept.label || id);
+          if (labelNorm && normalizedText.includes(labelNorm)) {
+            matched.add(id);
+            return;
+          }
+          const kwList = Array.isArray(concept.keywords)
+            ? concept.keywords
+            : [];
+          for (let i = 0; i < kwList.length && i < 40; i++) {
+            const kwNormFull = normalizeForMatch(kwList[i]);
+            if (!kwNormFull) continue;
+            const core =
+              kwNormFull.length > 6 ? kwNormFull.slice(0, 6) : kwNormFull;
+            if (core && normalizedText.includes(core)) {
+              matched.add(id);
+              break;
+            }
+          }
+        });
+
+        return Array.from(matched);
+      }
+
+      function refineTags(arr) {
+        const stop = new Set([
+          '메모',
+          '링크',
+          '페이지',
+          '자동',
+          '태그',
+          '작성',
+          '정리',
+          '수집',
+          '기록',
+          '저장',
+          '기능',
+          '오늘',
+          '지금',
+        ]);
+        const seen = new Set();
+        const out = [];
+        for (const raw of arr || []) {
+          const t = String(raw || '').trim();
+          if (!t) continue;
+          if (t.length < 2) continue;
+          if (/^[0-9]+$/.test(t)) continue;
+          if (stop.has(t)) continue;
+          const key = t.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(t);
+          if (out.length >= 8) break;
+        }
+        return out;
+      }
+
+      function extractTagsWithOntology(text = '', url = '') {
+        try {
+          const combined = `${text || ''} ${url || ''}`.trim();
+          const conceptIds = ontologyKeywords(combined) || [];
+
+          const groups = {
+            artifact: [],
+            domains: [],
+            workflow: [],
+            meta: [],
+            family: [],
+            others: [],
+          };
+          const famSeen = new Set();
+
+          if (conceptIds.length && Object.keys(ONTOLOGY_CONCEPTS).length) {
+            for (const id of conceptIds) {
+              const c = ONTOLOGY_CONCEPTS[id];
+              if (!c) continue;
+              const label = c.label || c.key || id;
+              if (!label) continue;
+              if (c.familyId && famSeen.has(c.familyId)) continue;
+              if (c.dim === 'artifact') groups.artifact.push(label);
+              else if (c.dim === 'domains') groups.domains.push(label);
+              else if (c.dim === 'workflow') groups.workflow.push(label);
+              else if (c.dim === 'meta') groups.meta.push(label);
+              else if (c.familyId) {
+                groups.family.push(label);
+                famSeen.add(c.familyId);
+              } else groups.others.push(label);
+            }
+            function takeUpTo(arr, n) {
+              const out = [];
+              for (const x of arr) {
+                if (out.length >= n) break;
+                out.push(x);
+              }
+              return out;
+            }
+            const ordered = [
+              ...takeUpTo(groups.artifact, 2),
+              ...takeUpTo(groups.domains, 2),
+              ...takeUpTo(groups.workflow, 2),
+              ...takeUpTo(groups.meta, 1),
+              ...takeUpTo(groups.family, 1),
+              ...groups.others,
+            ];
+            const cleaned = refineTags(ordered);
+            if (cleaned.length >= 4) return cleaned;
+            const fb = simpleKeywords(combined);
+            return refineTags([...cleaned, ...fb]);
+          }
+          return refineTags(simpleKeywords(combined));
+        } catch (e) {
+          console.warn('extractTagsWithOntology fallback due to error:', e);
+          const combined = `${text || ''} ${url || ''}`.trim();
+          return refineTags(simpleKeywords(combined));
+        }
+      }
+
+      function extractConceptIdsFromText(text = '', url = '') {
+        const combined = `${text || ''} ${url || ''}`;
+        return ontologyKeywords(combined);
+      }
+
+      const navigation = [
+        { name: 'Dashboard', href: 'index.html', icon: 'layout-dashboard' },
+        { name: 'Graph', href: 'graph.html', icon: 'network' },
+        { name: 'Projects', href: 'projects.html', icon: 'folder-kanban' },
+        { name: 'Editor', href: 'editor.html', icon: 'file-pen' },
+        { name: 'Outputs', href: 'outputs.html', icon: 'file-output' },
+      ];
+
+      const navLinks = document.getElementById('nav-links');
+
+      const renderNavigation = () => {
+        const activeName = 'Dashboard';
+
+        navLinks.innerHTML = navigation
+          .map(
+            (item) => `
+          <a
+            href="${item.href}"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              item.name === activeName
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            }"
+          >
+            <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+            ${item.name}
+          </a>
+        `
+          )
+          .join('');
+
+        if (window.lucide) lucide.createIcons();
+      };
+
+      renderNavigation();
+
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+          try {
+            await auth.signOut();
+          } catch (e) {
+            console.error('로그아웃 오류:', e);
+          } finally {
+            localStorage.removeItem(AUTH_KEY);
+            window.location.replace('login.html');
+          }
+        });
+      }
+
+      const recoRefreshBtn = document.getElementById('reco-refresh');
+      if (recoRefreshBtn) {
+        recoRefreshBtn.addEventListener('click', () => {
+          renderRecommendations();
+        });
+      }
+
+      // =========================
+      // [PATCH] 추천 테마 클릭 → 프로젝트로 이동
+      // =========================
+      function openTopicAsProject(topicKey, source = 'home') {
+        const key = String(topicKey || '').trim();
+        if (!key) return;
+
+        try {
+          localStorage.setItem('fw.activeTopicKey', key);
+          localStorage.setItem('fw.activeTopicSource', source);
+        } catch (e) {}
+
+        try {
+          const url = new URL('projects.html', window.location.href);
+          url.searchParams.set('topicKey', key);
+          url.searchParams.set('from', source);
+          window.location.href = url.toString();
+        } catch (e) {
+          window.location.href =
+            'projects.html?topicKey=' +
+            encodeURIComponent(key) +
+            '&from=' +
+            encodeURIComponent(source);
+        }
+      }
+
+      function bindRecoCardNavigation() {
+        const grid = document.getElementById('reco-grid');
+        if (!grid || grid.__fwRecoNavBound) return;
+        grid.__fwRecoNavBound = true;
+
+        // event delegation: renderRecommendations가 innerHTML을 갱신해도 유지됨
+        grid.addEventListener('click', (evt) => {
+          const el = evt.target;
+          if (!el || !el.closest) return;
+          const card = el.closest('.reco-card');
+          if (!card || !grid.contains(card)) return;
+
+          const key = card.getAttribute('data-reco-key') || '';
+          openTopicAsProject(key, 'home');
+        });
+      }
+
+      function inferRoleIdForMemo({
+        text = '',
+        url = '',
+        type = 'note',
+        tags = [],
+      }) {
+        if (!Array.isArray(ONTOLOGY_ROLES) || !ONTOLOGY_ROLES.length) {
+          return null;
+        }
+
+        const loweredText = String(text || '').toLowerCase();
+        const loweredUrl = String(url || '').toLowerCase();
+        const loweredTags = (tags || []).map((t) =>
+          String(t || '').toLowerCase()
+        );
+
+        const findRole = (id) =>
+          ONTOLOGY_ROLES.find(
+            (r) => r && typeof r.id === 'string' && r.id === id
+          );
+
+        const matchesDefaultTags = (role) => {
+          if (!role) return false;
+          const defaults = Array.isArray(role.defaultTags)
+            ? role.defaultTags
+            : [];
+          return defaults.some((tag) => {
+            const v = String(tag || '').toLowerCase();
+            return (
+              v &&
+              (loweredText.includes(v) ||
+                loweredUrl.includes(v) ||
+                loweredTags.includes(v))
+            );
+          });
+        };
+
+        if (type === 'link' || type === 'youtube' || url) {
+          const refRole =
+            findRole('reference') ||
+            ONTOLOGY_ROLES.find((r) =>
+              /reference|레퍼런스|자료/.test(String(r.label || '').toLowerCase())
+            );
+          if (refRole) return refRole.id;
+        }
+
+        const priorityIds = [
+          'hypothesis',
+          'problem',
+          'experiment',
+          'result',
+          'insight',
+          'idea',
+          'task',
+        ];
+        for (const roleId of priorityIds) {
+          const role = findRole(roleId);
+          if (matchesDefaultTags(role)) return role.id;
+        }
+
+        if (/일까|가설|hypothesis/i.test(loweredText)) {
+          const r = findRole('hypothesis');
+          if (r) return r.id;
+        }
+        if (/문제|pain|불편|어려움/i.test(loweredText)) {
+          const r = findRole('problem');
+          if (r) return r.id;
+        }
+        if (/실험|테스트|ab ?test|캠페인/i.test(loweredText)) {
+          const r = findRole('experiment');
+          if (r) return r.id;
+        }
+        if (/결과|성과|전환율|지표|metric/i.test(loweredText)) {
+          const r = findRole('result');
+          if (r) return r.id;
+        }
+        if (/인사이트|배운 점|깨달음|알게 됨/i.test(loweredText)) {
+          const r = findRole('insight');
+          if (r) return r.id;
+        }
+        if (/아이디어|idea|하면 좋겠다|어떨까/i.test(loweredText)) {
+          const r = findRole('idea');
+          if (r) return r.id;
+        }
+        if (/해야 할|해야할|todo|할 일/i.test(loweredText)) {
+          const r = findRole('task');
+          if (r) return r.id;
+        }
+
+        return null;
+      }
+
+      function defaultFlowStageId(artifactTypeId) {
+        if (
+          artifactTypeId &&
+          Array.isArray(ONTOLOGY_ARTIFACT_TYPES) &&
+          ONTOLOGY_ARTIFACT_TYPES.length
+        ) {
+          const art = ONTOLOGY_ARTIFACT_TYPES.find(
+            (a) => a && a.id === artifactTypeId
+          );
+          if (art && art.defaultFlowStage) {
+            return art.defaultFlowStage;
+          }
+        }
+
+        if (!Array.isArray(ONTOLOGY_FLOW_STAGES) || !ONTOLOGY_FLOW_STAGES.length) {
+          return null;
+        }
+        const capture = ONTOLOGY_FLOW_STAGES.find((s) => s.id === 'capture');
+        if (capture) return capture.id;
+        return ONTOLOGY_FLOW_STAGES[0].id || null;
+      }
+
+      const memoModal = document.getElementById('memo-modal');
+      const memoModalClose = document.getElementById('memo-modal-close');
+      const modalType = document.getElementById('modal-type');
+      const modalTime = document.getElementById('modal-time');
+      const modalText = document.getElementById('modal-text');
+      const modalUrl = document.getElementById('modal-url');
+      const modalUrlWrapper = document.getElementById('modal-url-wrapper');
+      const modalTagsWrapper = document.getElementById('modal-tags-wrapper');
+      const modalMeta = document.getElementById('modal-meta');
+      const modalImageWrapper = document.getElementById('modal-image-wrapper');
+      const modalImage = document.getElementById('modal-image');
+
+      function formatCreated(createdAt) {
+        if (!createdAt) return '';
+        const d =
+          typeof createdAt === 'number' ? new Date(createdAt) : new Date(createdAt);
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return `${m}.${day} ${hh}:${mm}`;
+      }
+
+      function openMemoModal(memo) {
+        const TAG_TOP_N = 5;
+        const globalScore = {};
+        (Array.isArray(memosCache) ? memosCache : []).forEach((m) => {
+          const ts = Array.isArray(m.tags) ? m.tags : [];
+          ts.forEach((t) => {
+            const key = String(t || '');
+            if (!key) return;
+            globalScore[key] = (globalScore[key] || 0) + 1;
+          });
+        });
+
+        const baseTagSource =
+          Array.isArray(memo.primaryTags) && memo.primaryTags.length
+            ? memo.primaryTags
+            : Array.isArray(memo.tags)
+            ? memo.tags
+            : [];
+
+        const modalTopTags = baseTagSource
+          .map((t) => ({
+            name: String(t || ''),
+            s: globalScore[String(t || '')] || 0,
+          }))
+          .filter((x) => x.name)
+          .sort((a, b) => b.s - a.s || a.name.localeCompare(b.name))
+          .slice(0, TAG_TOP_N)
+          .map((x) => x.name);
+
+        modalType.textContent = memo.type ? memo.type.toUpperCase() : 'MEMO';
+        modalTime.textContent = formatCreated(memo.createdAt);
+        modalText.textContent = memo.text || '';
+
+        if (modalMeta) {
+          const categoryLabel =
+            memo.category === 'personal'
+              ? '개인용'
+              : memo.category === 'work'
+              ? '업무용'
+              : memo.category === 'study'
+              ? '공부/연구'
+              : memo.category === 'etc'
+              ? '기타'
+              : '';
+          let importanceLabel = '';
+          let importanceColorClass = '';
+          if (memo.importance === 'high') {
+            importanceLabel = '중요';
+            importanceColorClass = 'bg-[#FEE2E2] text-[#B91C1C]';
+          } else if (memo.importance === 'low') {
+            importanceLabel = '낮음';
+            importanceColorClass = 'bg-[#E0F2FE] text-[#0369A1]';
+          } else if (memo.importance === 'normal') {
+            importanceLabel = '보통';
+            importanceColorClass = 'bg-[#FEF9C3] text-[#854D0E]';
+          }
+          let html = '';
+          if (categoryLabel) {
+            html += `<span class="tag-chip rounded-full bg-[#EEF2FF] px-1.5 py-[1px] text-[10px] text-[#4F46E5]">${categoryLabel}</span>`;
+          }
+          if (importanceLabel) {
+            html += `<span class="tag-chip rounded-full px-1.5 py-[1px] text-[10px] ${importanceColorClass}">${importanceLabel}</span>`;
+          }
+          modalMeta.innerHTML = html;
+        }
+
+        if (modalImageWrapper && modalImage) {
+          if (memo.imageData) {
+            modalImage.src = memo.imageData;
+            modalImageWrapper.classList.remove('hidden');
+          } else {
+            modalImage.src = '';
+            modalImageWrapper.classList.add('hidden');
+          }
+        }
+
+        if (memo.url) {
+          modalUrl.href = memo.url;
+          modalUrl.textContent = memo.url;
+          modalUrlWrapper.classList.remove('hidden');
+        } else {
+          modalUrlWrapper.classList.add('hidden');
+        }
+
+        modalTagsWrapper.innerHTML = '';
+        const showTags = modalTopTags;
+        if (showTags && showTags.length) {
+          showTags.forEach((t) => {
+            const span = document.createElement('span');
+            span.className =
+              'rounded-full bg-[#E3F7D9] border border-[#CCE7C4] px-1 py-[0.5px] text-[9.5px] leading-tight text-[#4E7A57]';
+            span.textContent = t;
+            modalTagsWrapper.appendChild(span);
+          });
+          modalTagsWrapper.classList.remove('hidden');
+        } else {
+          modalTagsWrapper.classList.add('hidden');
+        }
+
+        memoModal.classList.remove('hidden');
+        memoModal.classList.add('flex');
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function closeMemoModal() {
+        memoModal.classList.add('hidden');
+        memoModal.classList.remove('flex');
+      }
+
+      memoModalClose.addEventListener('click', closeMemoModal);
+      memoModal.addEventListener('click', (e) => {
+        if (e.target === memoModal) closeMemoModal();
+      });
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !memoModal.classList.contains('hidden')) {
+          closeMemoModal();
+        }
+      });
+
+      function hashToVariant(str, mod = 8) {
+        const s = String(str || '');
+        let h = 0;
+        for (let i = 0; i < s.length; i++) {
+          h = (h * 31 + s.charCodeAt(i)) >>> 0;
+        }
+        const m = Number(mod) || 1;
+        return h % m;
+      }
+
+      function renderRecommendations() {
+        const grid = document.getElementById('reco-grid');
+        const empty = document.getElementById('reco-empty');
+        if (!grid) return;
+
+        // [PATCH] click 바인딩은 최초 1회만 (delegation)
+        bindRecoCardNavigation();
+
+        const memos = Array.isArray(memosCache) ? memosCache : [];
+        if (!memos.length) {
+          grid.innerHTML = '';
+          if (empty) empty.classList.remove('hidden');
+          if (window.lucide) lucide.createIcons();
+          return;
+        }
+        if (empty) empty.classList.add('hidden');
+
+        const buckets = {};
+        memos.forEach((m) => {
+          const keyRaw =
+            (Array.isArray(m.primaryTags) && m.primaryTags[0]) ||
+            (m && m.mainTopic && String(m.mainTopic).trim()) ||
+            (Array.isArray(m.tags) && m.tags[0]) ||
+            '미분류';
+          const key = String(keyRaw || '미분류').trim() || '미분류';
+
+          if (!buckets[key]) buckets[key] = { key, count: 0, tags: {} };
+          buckets[key].count += 1;
+
+          const sourceTags =
+            Array.isArray(m.primaryTags) && m.primaryTags.length
+              ? m.primaryTags
+              : Array.isArray(m.tags)
+              ? m.tags
+              : [];
+          sourceTags.forEach((t) => {
+            const tt = String(t || '').trim();
+            if (!tt) return;
+            buckets[key].tags[tt] = (buckets[key].tags[tt] || 0) + 1;
+          });
+        });
+
+        const list = Object.values(buckets)
+          .sort((a, b) => b.count - a.count || a.key.localeCompare(b.key))
+          .slice(0, 8);
+
+        const variants = [
+          "linear-gradient(135deg, rgba(244,114,182,.30), rgba(167,139,250,.18), rgba(96,165,250,.16))",
+          "linear-gradient(135deg, rgba(96,165,250,.30), rgba(34,211,238,.18), rgba(52,211,153,.16))",
+          "linear-gradient(135deg, rgba(52,211,153,.30), rgba(163,230,53,.18), rgba(251,191,36,.14))",
+          "linear-gradient(135deg, rgba(251,191,36,.32), rgba(251,146,60,.18), rgba(244,114,182,.14))",
+          "linear-gradient(135deg, rgba(167,139,250,.30), rgba(96,165,250,.16), rgba(34,211,238,.14))",
+          "linear-gradient(135deg, rgba(236,72,153,.28), rgba(167,139,250,.16), rgba(251,191,36,.14))",
+          "linear-gradient(135deg, rgba(163,230,53,.32), rgba(52,211,153,.16), rgba(34,211,238,.14))",
+          "linear-gradient(135deg, rgba(251,146,60,.32), rgba(248,113,113,.18), rgba(244,114,182,.14))",
+        ];
+
+        function recoVariantIndex(key) {
+          const raw = String(key || "");
+          const lower = raw.toLowerCase();
+
+          if (/(감정|정서|일상|관계|회고|사랑|상처|외로움|불안|기쁨|슬픔)/.test(raw)) return 0;
+          if (/(업무|일|프로젝트|기획|회의|문서|보고|전략)/.test(raw) || /pm|work|project|doc|meeting|task/.test(lower)) return 1;
+          // [PATCH] star...usiness 오타 수정 → startup|business
+          if (/(창업|비즈니스|사업|마케팅|세일즈|고객|수익|bm)/.test(raw) || /startup|business|marketing|sales|revenue|customer/.test(lower)) return 2;
+          if (/(공부|연구|학습|논문|수업|시험|정리|요약)/.test(raw) || /study|research|paper|class|exam/.test(lower)) return 3;
+          if (/(인사이트|통찰|철학|개념|사유|생각|아이디어|발상)/.test(raw) || /insight|idea|concept|philosophy|thought/.test(lower)) return 4;
+          if (/(글쓰기|소설|작가|문장|시|문학|에세이|출판)/.test(raw) || /write|writing|novel|poem|essay|author|publish/.test(lower)) return 5;
+          if (/(계획|루틴|목표|습관|일정|관리|투두|todo)/.test(raw) || /plan|routine|goal|habit|schedule|todo/.test(lower)) return 6;
+          if (/(레퍼런스|자료|링크|유튜브|영상|기사|북마크)/.test(raw) || /reference|link|youtube|video|article|bookmark/.test(lower)) return 7;
+
+          return hashToVariant(raw, variants.length);
+        }
+
+        grid.innerHTML = list
+          .map((b) => {
+            const topTags = Object.entries(b.tags || {})
+              .sort((a, c) => c[1] - a[1] || a[0].localeCompare(c[0]))
+              .slice(0, 3)
+              .map((x) => x[0]);
+
+            const variant = variants[recoVariantIndex(b.key)];
+            const badge = b.key === '미분류' ? '분류 대기' : '온톨로지';
+
+            return `
+              <button class="reco-card w-full" type="button" data-reco-key="${b.key}">
+                <div class="reco-media" style="background:${variant}">
+                  <span class="reco-badge">
+                    <i data-lucide="layers" class="w-3 h-3"></i>
+                    ${badge}
+                  </span>
+                  <span class="reco-count">${b.count}</span>
+                </div>
+                <div class="reco-body">
+                  <div class="reco-title">${b.key}</div>
+                  <div class="reco-sub">${
+                    topTags.length
+                      ? topTags.join(' · ')
+                      : '연결 키워드가 아직 없습니다.'
+                  }</div>
+                </div>
+              </button>
+            `;
+          })
+          .join('');
+
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function renderMemos() {
+        const container = document.getElementById('memo-list');
+        const empty = document.getElementById('memo-empty');
+        const countEl = document.getElementById('memo-count');
+
+        const memos = [...memosCache].sort(
+          (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
+        );
+
+        const TAG_TOP_N = 5;
+        const tagScore = {};
+        memos.forEach((m) => {
+          const ts = Array.isArray(m.tags) ? m.tags : [];
+          ts.forEach((t) => {
+            const key = String(t || '');
+            if (!key) return;
+            tagScore[key] = (tagScore[key] || 0) + 1;
+          });
+        });
+
+        if (countEl) {
+          countEl.textContent = `${memos.length}개`;
+        }
+
+        if (!memos.length) {
+          container.innerHTML = '';
+          empty.classList.remove('hidden');
+          if (window.lucide) lucide.createIcons();
+          renderRecommendations();
+          return;
+        }
+
+        empty.classList.add('hidden');
+
+        container.innerHTML = memos
+          .map((memo) => {
+            const baseTagSource =
+              Array.isArray(memo.primaryTags) && memo.primaryTags.length
+                ? memo.primaryTags
+                : Array.isArray(memo.tags)
+                ? memo.tags
+                : [];
+
+            const tags = baseTagSource
+              .map((t) => ({
+                name: String(t || ''),
+                s: tagScore[String(t || '')] || 0,
+              }))
+              .filter((x) => x.name)
+              .sort((a, b) => b.s - a.s || a.name.localeCompare(b.name))
+              .slice(0, TAG_TOP_N)
+              .map((x) => x.name);
+
+            const createdLabel = formatCreated(memo.createdAt);
+
+            const typeLabel =
+              memo.type === 'link'
+                ? 'LINK'
+                : memo.type === 'youtube'
+                ? 'YOUTUBE'
+                : 'MEMO';
+
+            const typeIcon =
+              memo.type === 'link'
+                ? 'link-2'
+                : memo.type === 'youtube'
+                ? 'youtube'
+                : 'file-text';
+
+            const categoryLabel =
+              memo.category === 'personal'
+                ? '개인용'
+                : memo.category === 'work'
+                ? '업무용'
+                : memo.category === 'study'
+                ? '공부/연구'
+                : memo.category === 'etc'
+                ? '기타'
+                : '';
+
+            let importanceLabel = '';
+            let importanceColorClass = '';
+            if (memo.importance === 'high') {
+              importanceLabel = '중요';
+              importanceColorClass = 'bg-[#FEE2E2] text-[#B91C1C]';
+            } else if (memo.importance === 'low') {
+              importanceLabel = '낮음';
+              importanceColorClass = 'bg-[#E0F2FE] text-[#0369A1]';
+            } else if (memo.importance === 'normal') {
+              importanceLabel = '보통';
+              importanceColorClass = 'bg-[#FEF9C3] text-[#854D0E]';
+            }
+
+            return `
+              <article
+                class="memo-card rounded-xl border border-border/70 bg-white/80 shadow-[0_1px_4px_rgba(15,23,42,0.04)] overflow-hidden cursor-pointer"
+                data-id="${memo.id}"
+              >
+                <div class="memo-left">
+                  <div class="memo-meta">
+                    <i data-lucide="${typeIcon}" class="w-3 h-3"></i>
+                    <span class="memo-type-label">${typeLabel}</span>
+                  </div>
+                  <div class="memo-time">${createdLabel}</div>
+                  ${
+                    memo.imageData
+                      ? `<img src="${memo.imageData}" alt="" class="memo-thumb" />`
+                      : ``
+                  }
+                </div>
+
+                <div class="memo-mid">
+                  ${
+                    categoryLabel || importanceLabel
+                      ? `<div class="memo-chips text-[10px]">
+                          ${
+                            categoryLabel
+                              ? `<span class="tag-chip rounded-full bg-[#EEF2FF] px-1.5 py-[1px] text-[#4F46E5]">${categoryLabel}</span>`
+                              : ''
+                          }
+                          ${
+                            importanceLabel
+                              ? `<span class="tag-chip rounded-full px-1.5 py-[1px] ${importanceColorClass}">${importanceLabel}</span>`
+                              : ''
+                          }
+                        </div>`
+                      : ''
+                  }
+
+                  <p class="memo-text text-sm text-foreground">
+                    ${memo.text || ''}
+                  </p>
+
+                  ${
+                    memo.url
+                      ? `<a href="${memo.url}" target="_blank" class="memo-url break-all">
+                          <i data-lucide="link-2" class="h-3 w-3"></i>
+                          ${memo.url}
+                        </a>`
+                      : ''
+                  }
+
+                  ${
+                    tags.length
+                      ? `<div class="memo-chips">
+                          ${tags
+                            .map(
+                              (t) =>
+                                `<span class="tag-chip rounded-full bg-[#E3F7D9] border border-[#CCE7C4] px-1 py-[0.5px] text-[9.5px] leading-tight text-[#4E7A57]">${
+                                  typeof labelOf === 'function'
+                                    ? labelOf(String(t))
+                                    : String(t)
+                                }</span>`
+                            )
+                            .join('')}
+                        </div>`
+                      : ''
+                  }
+                </div>
+
+                <div class="memo-right">
+                  <button
+                    class="memo-delete-btn inline-flex items-center justify-center rounded-full border border-transparent hover:border-[#D4DEEE] hover:bg-white/80 h-7 w-7 text-[#B0B5C3]"
+                    data-id="${memo.id}"
+                    aria-label="메모 삭제"
+                  >
+                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </article>
+            `;
+          })
+          .join('');
+
+        if (window.lucide) lucide.createIcons();
+        attachMemoCardEvents();
+        attachDeleteEvents();
+        renderRecommendations();
+      }
+
+      function attachMemoCardEvents() {
+        const cards = document.querySelectorAll('.memo-card');
+        cards.forEach((card) => {
+          card.addEventListener('click', (e) => {
+            if (e.target.closest('.memo-delete-btn')) return;
+            if (e.target.closest('a')) return;
+
+            const id = card.dataset.id;
+            const memo = memosCache.find((m) => m.id === id);
+            if (memo) openMemoModal(memo);
+          });
+        });
+      }
+
+      function attachDeleteEvents() {
+        const buttons = document.querySelectorAll('.memo-delete-btn');
+        buttons.forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            deleteMemo(id);
+          });
+        });
+      }
+
+      async function fetchMemosFromServer() {
+        if (!currentUser) return;
+        try {
+          const snap = await db
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('memos')
+            .orderBy('createdAt', 'desc')
+            .get();
+
+          memosCache = snap.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+
+          renderMemos();
+        } catch (e) {
+          console.error('메모 로드 오류:', e);
+        }
+      }
+
+      async function addMemo({
+        text,
+        url,
+        type,
+        category,
+        importance,
+        extraTags,
+        imageData,
+      }) {
+        if (!currentUser) {
+          alert('로그인 후 사용해 주세요.');
+          return;
+        }
+        const createdAt = Date.now();
+
+        let manualTags = [];
+        if (Array.isArray(extraTags)) {
+          manualTags = extraTags;
+        } else if (typeof extraTags === 'string' && extraTags.trim()) {
+          manualTags = extraTags
+            .split(/[,\s]+/)
+            .map((t) => t.trim())
+            .filter(Boolean);
+        }
+
+        const data = {
+          text,
+          url: url || '',
+          type: type || 'note',
+          tags: manualTags,
+          mainTopic: null,
+          primaryTags: [],
+          detailTags: [],
+          createdAt,
+          artifactTypeId: 'memo',
+        };
+
+        if (category) {
+          data.category = category;
+        }
+        if (importance) {
+          data.importance = importance;
+        }
+        if (imageData) {
+          data.imageData = imageData;
+        }
+
+        const roleId = inferRoleIdForMemo({
+          text,
+          url,
+          type: type || 'note',
+          tags: manualTags,
+        });
+        const flowStage = defaultFlowStageId('memo');
+        if (roleId) {
+          data.role = roleId;
+        }
+        if (flowStage) {
+          data.flowStage = flowStage;
+        }
+
+        try {
+          const docRef = await db
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('memos')
+            .add(data);
+
+          memosCache.unshift({
+            id: docRef.id,
+            ...data,
+          });
+
+          renderMemos();
+
+          const memoForLLM = memosCache.find((m) => m.id === docRef.id);
+          if (memoForLLM && shouldUseLLM(memoForLLM)) {
+            enqueueForLLM(docRef.id);
+          }
+        } catch (e) {
+          console.error('메모 저장 오류:', e);
+          alert('메모 저장 중 오류가 발생했습니다.');
+        }
+      }
+
+      async function deleteMemo(id) {
+        if (!currentUser) return;
+        try {
+          await db
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('memos')
+            .doc(id)
+            .delete();
+        } catch (e) {
+          console.error('메모 삭제 오류:', e);
+        } finally {
+          memosCache = memosCache.filter((m) => m.id !== id);
+          renderMemos();
+        }
+      }
+
+      async function clearAllMemos() {
+        if (!currentUser) return;
+        if (!confirm('저장된 인박스 메모를 모두 삭제할까요?')) return;
+
+        try {
+          const snap = await db
+            .collection('users')
+            .doc(currentUser.uid)
+            .collection('memos')
+            .get();
+
+          const batch = db.batch();
+          snap.forEach((doc) => batch.delete(doc.ref));
+          await batch.commit();
+
+          memosCache = [];
+          renderMemos();
+        } catch (e) {
+          console.error('전체 삭제 오류:', e);
+          alert('전체 삭제 중 오류가 발생했습니다.');
+        }
+      }
+
+      const LLM_ENABLED = true;
+      const LLM_BATCH_SIZE = 5;
+      const LLM_DEBOUNCE_MS = 5000;
+
+      let llmQueue = [];
+      let llmTimer = null;
+      let llmInFlight = false;
+
+      function shouldUseLLM(memo) {
+        const text = (memo.text || '').trim();
+        if (!text) return false;
+        if (text.length < 20) return false;
+
+        const urlLike = text.match(/https?:\/\/\S+/g);
+        if (urlLike && urlLike[0].length > text.length * 0.6) return false;
+
+        return true;
+      }
+
+      function buildCompressedMemo(memo) {
+        const text = (memo.text || '').replace(/\s+/g, ' ').trim();
+        const maxLen = 200;
+        const compressed = text.length > maxLen ? text.slice(0, maxLen) + '...' : text;
+
+        return {
+          id: memo.id,
+          type: memo.type || 'note',
+          url: memo.url || '',
+          text: compressed,
+        };
+      }
+
+      function scheduleLLMTagging() {
+        if (!LLM_ENABLED) return;
+        if (llmInFlight) return;
+        if (!llmQueue.length) return;
+
+        if (llmTimer) clearTimeout(llmTimer);
+        llmTimer = setTimeout(processLLMQueue, LLM_DEBOUNCE_MS);
+      }
+
+      async function processLLMQueue() {
+        if (!LLM_ENABLED) return;
+        if (llmInFlight) return;
+        if (!llmQueue.length) return;
+        if (!currentUser) return;
+
+        llmInFlight = true;
+        const batchIds = llmQueue.splice(0, LLM_BATCH_SIZE);
+        console.log('[LLM] processLLMQueue - start batch', { batchIds });
+
+        try {
+          const targetMemos = batchIds
+            .map((id) => memosCache.find((m) => m.id === id))
+            .filter(Boolean)
+            .filter(shouldUseLLM)
+            .map(buildCompressedMemo);
+
+          console.log('[LLM] processLLMQueue - targetMemos (compressed):', targetMemos);
+
+          if (!targetMemos.length) {
+            console.log('[LLM] processLLMQueue - no valid target memos, skipping LLM call');
+            llmInFlight = false;
+            scheduleLLMTagging();
+            return;
+          }
+
+          const callable = functions.httpsCallable('tagMemos');
+          console.log('[LLM] Calling tagMemos Firebase Function with payload:', { memos: targetMemos });
+          const res = await callable({ memos: targetMemos });
+          console.log('[LLM] tagMemos raw response:', res);
+
+          const results = res.data && Array.isArray(res.data.results) ? res.data.results : [];
+
+          console.log('[LLM] tagMemos parsed results:', results);
+
+          if (results.length) {
+            for (const r of results) {
+              const idx = memosCache.findIndex((m) => m.id === r.id);
+              if (idx === -1) {
+                console.warn('[LLM] Result id not found in memosCache:', r.id);
+                continue;
+              }
+
+              const memo = memosCache[idx];
+
+              const primaryTags = Array.isArray(r.primary_tags || r.primaryTags)
+                ? (r.primary_tags || r.primaryTags)
+                    .map((t) => String(t || '').trim())
+                    .filter(Boolean)
+                : [];
+
+              const detailTags = Array.isArray(r.detail_tags || r.detailTags)
+                ? (r.detail_tags || r.detailTags)
+                    .map((t) => String(t || '').trim())
+                    .filter(Boolean)
+                : [];
+
+              const allTags = Array.from(
+                new Set([...(primaryTags || []), ...(detailTags || []), ...(memo.tags || [])])
+              ).slice(0, 16);
+
+              const mainTopic = r.main_topic || r.mainTopic || null;
+
+              memosCache[idx] = { ...memo, tags: allTags, primaryTags, detailTags, mainTopic };
+
+              try {
+                await db
+                  .collection('users')
+                  .doc(currentUser.uid)
+                  .collection('memos')
+                  .doc(r.id)
+                  .update({
+                    tags: allTags,
+                    primaryTags,
+                    detailTags,
+                    mainTopic,
+                  });
+              } catch (e) {
+                console.error('LLM 태그 Firestore 업데이트 오류:', e);
+              }
+            }
+            renderMemos();
+          } else {
+            console.warn('[LLM] tagMemos returned empty results for batch', { batchIds });
+          }
+        } catch (err) {
+          console.error('LLM 태깅 오류:', err);
+        } finally {
+          llmInFlight = false;
+          if (llmQueue.length) {
+            scheduleLLMTagging();
+          }
+        }
+      }
+
+      function enqueueForLLM(memoId) {
+        if (!LLM_ENABLED) return;
+        if (!memoId) return;
+        if (!llmQueue.includes(memoId)) {
+          llmQueue.push(memoId);
+          scheduleLLMTagging();
+        }
+      }
+
+      const quickTextEl = document.getElementById('quick-text');
+      if (quickTextEl) {
+        const autoResizeQuickText = () => {
+          quickTextEl.style.height = 'auto';
+          quickTextEl.style.height = quickTextEl.scrollHeight + 'px';
+        };
+        quickTextEl.addEventListener('input', autoResizeQuickText);
+      }
+
+      const advancedToggle = document.getElementById('quick-advanced-toggle');
+      const advancedSection = document.getElementById('quick-advanced');
+      if (advancedToggle && advancedSection) {
+        advancedToggle.addEventListener('click', () => {
+          const isHidden = advancedSection.classList.contains('hidden');
+          const labelSpan = advancedToggle.querySelector('span');
+          if (isHidden) {
+            advancedSection.classList.remove('hidden');
+            if (labelSpan) labelSpan.textContent = '세부 옵션 닫기';
+          } else {
+            advancedSection.classList.add('hidden');
+            if (labelSpan) labelSpan.textContent = '세부 옵션 열기';
+          }
+        });
+      }
+
+      const quickSaveBtn = document.getElementById('quick-save');
+      if (quickSaveBtn) {
+        quickSaveBtn.addEventListener('click', () => {
+          const urlEl = document.getElementById('quick-url');
+          const typeEl = document.getElementById('quick-type');
+          const categoryEl = document.getElementById('quick-category');
+          const tagsEl = document.getElementById('quick-tags');
+          const importanceEl = document.getElementById('quick-importance');
+          const imageEl = document.getElementById('quick-image');
+
+          const text = quickTextEl ? quickTextEl.value.trim() : '';
+          const url = urlEl ? urlEl.value.trim() : '';
+          const type = typeEl ? typeEl.value : 'note';
+          const category = categoryEl ? categoryEl.value : '';
+          const importance = importanceEl ? importanceEl.value : 'normal';
+          const extraTagsRaw = tagsEl ? tagsEl.value : '';
+          const extraTags = extraTagsRaw
+            ? extraTagsRaw
+                .split(/[,\s]+/)
+                .map((t) => t.trim())
+                .filter(Boolean)
+            : [];
+
+          const imageFile =
+            imageEl && imageEl.files && imageEl.files[0] ? imageEl.files[0] : null;
+
+          if (!text && !url && !imageFile) return;
+
+          const finalize = (imageData) => {
+            addMemo({
+              text,
+              url,
+              type,
+              category,
+              importance,
+              extraTags,
+              imageData,
+            });
+
+            if (quickTextEl) {
+              quickTextEl.value = '';
+              quickTextEl.style.height = '';
+            }
+            if (urlEl) urlEl.value = '';
+            if (tagsEl) tagsEl.value = '';
+            if (categoryEl) categoryEl.value = '';
+            if (importanceEl) importanceEl.value = 'normal';
+            if (imageEl) imageEl.value = '';
+          };
+
+          if (imageFile) {
+            const reader = new FileReader();
+            reader.onload = () => {
+              finalize(reader.result || '');
+            };
+            reader.onerror = () => {
+              console.error('이미지 읽기 오류');
+              finalize('');
+            };
+            reader.readAsDataURL(imageFile);
+          } else {
+            finalize('');
+          }
+        });
+      }
+
+      document.getElementById('clear-memos').addEventListener('click', clearAllMemos);
+
+      function updateClock() {
+        const now = new Date();
+        const hh = now.getHours().toString().padStart(2, '0');
+        const mm = now.getMinutes().toString().padStart(2, '0');
+
+        const weekdayNames = ['일', '월', '화', '수', '목', '금', '토'];
+        const weekday = weekdayNames[now.getDay()];
+        const dateStr = `${now.getFullYear()}.${(now.getMonth() + 1)
+          .toString()
+          .padStart(2, '0')}.${now.getDate().toString().padStart(2, '0')} (${weekday})`;
+
+        const timeEl = document.getElementById('clock-time');
+        const dateEl = document.getElementById('clock-date');
+        if (timeEl) timeEl.textContent = `${hh}:${mm}`;
+        if (dateEl) dateEl.textContent = dateStr;
+      }
+
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      const calendarCard = document.getElementById('calendar-card');
+
+      function ymd(d) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+
+      function weekdayKo(d) {
+        return ['일', '월', '화', '수', '목', '금', '토'][d.getDay()];
+      }
+
+      function buildCalendarUI() {
+        if (!calendarCard) return;
+
+        const weekdayRow =
+          '<div class="grid grid-cols-7 gap-1 text-[11px] text-muted-foreground">' +
+          '<div class="text-center">일</div><div class="text-center">월</div><div class="text-center">화</div><div class="text-center">수</div><div class="text-center">목</div><div class="text-center">금</div><div class="text-center">토</div>' +
+          '</div>';
+
+        calendarCard.innerHTML =
+          '<div class="flex items-center justify-between mb-3">' +
+          '<div><p class="text-xs text-muted-foreground">CALENDAR</p>' +
+          '<p id="month-label" class="text-sm font-semibold mt-0.5"></p></div>' +
+          '<div class="flex items-center gap-1">' +
+          '<button id="prev-month" class="h-7 w-7 flex items-center justify-center rounded-md p-0 opacity-70 hover:opacity-100 hover:bg-muted/60 transition" aria-label="previous month">' +
+          '<i data-lucide="chevron-left" class="w-4 h-4"></i></button>' +
+          '<button id="next-month" class="h-7 w-7 flex items-center justify-center rounded-md p-0 opacity-70 hover:opacity-100 hover:bg-muted/60 transition" aria-label="next month">' +
+          '<i data-lucide="chevron-right" class="w-4 h-4"></i></button>' +
+          '</div></div>' +
+          weekdayRow +
+          '<div id="calendar-grid" class="mt-2 grid grid-cols-7 gap-1 text-xs"></div>' +
+          '<div id="calendar-selected" class="mt-3 text-[11px] text-muted-foreground"></div>' +
+          '<div class="mt-4 pt-3 border-t border-border/70">' +
+          '<div class="flex items-center justify-between mb-2">' +
+          '<p class="text-xs font-semibold text-muted-foreground">TODAY\'S TODO</p>' +
+          '<span id="todo-count" class="text-[11px] text-muted-foreground">0개</span>' +
+          '</div>' +
+          '<div class="flex items-center gap-2 mb-2">' +
+          '<input id="todo-input" type="text" class="flex-1 rounded-lg border border-input bg-background px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40" placeholder="오늘 해야 할 일을 적고 Enter" />' +
+          '</div>' +
+          '<ul id="todo-list" class="space-y-1 max-h-40 overflow-y-auto text-xs"></ul>' +
+          '</div>';
+
+        if (window.lucide) lucide.createIcons();
+      }
+
+      buildCalendarUI();
+
+      const calendarGrid = document.getElementById('calendar-grid');
+      const monthLabel = document.getElementById('month-label');
+      const calendarSelected = document.getElementById('calendar-selected');
+      const prevBtn = document.getElementById('prev-month');
+      const nextBtn = document.getElementById('next-month');
+
+      const todoInput = document.getElementById('todo-input');
+      const todoListEl = document.getElementById('todo-list');
+      const todoCountEl = document.getElementById('todo-count');
+
+      let currentMonth = new Date();
+      let selectedDate = new Date();
+      let todos = [];
+
+      function safeUserId() {
+        try {
+          return currentUser && currentUser.uid ? currentUser.uid : 'guest';
+        } catch (e) {
+          return 'guest';
+        }
+      }
+
+      function todoStorageKey() {
+        return `forword.todos.${safeUserId()}.${ymd(selectedDate)}`;
+      }
+
+      function loadTodosForSelectedDate() {
+        try {
+          const raw = localStorage.getItem(todoStorageKey());
+          todos = raw ? JSON.parse(raw) : [];
+        } catch (e) {
+          todos = [];
+        }
+        renderTodos();
+        updateTodoCount();
+      }
+
+      function persistTodos() {
+        try {
+          localStorage.setItem(todoStorageKey(), JSON.stringify(todos));
+        } catch (e) {}
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+
+      function updateTodoCount() {
+        if (!todoCountEl) return;
+        todoCountEl.textContent = `${todos.length}개`;
+      }
+
+      function renderTodos() {
+        if (!todoListEl) return;
+
+        if (!todos.length) {
+          todoListEl.innerHTML =
+            '<li class="text-[11px] text-muted-foreground py-2">할 일이 없습니다. 한 줄만 적어도 충분합니다.</li>';
+          return;
+        }
+
+        todoListEl.innerHTML = todos
+          .map((t) => {
+            const done = !!t.done;
+            const textClass = done
+              ? 'line-through text-muted-foreground'
+              : 'text-foreground';
+            const dotClass = done ? 'bg-muted' : 'bg-primary';
+            return (
+              '<li data-id="' +
+              t.id +
+              '" class="group flex items-center justify-between gap-2 px-2 py-2 rounded-lg hover:bg-muted/40 transition">' +
+              '<button type="button" class="todo-toggle flex items-center gap-2 min-w-0">' +
+              '<span class="h-4 w-4 rounded-full ' +
+              dotClass +
+              ' flex items-center justify-center text-[10px] text-primary-foreground">' +
+              (done ? '✓' : '') +
+              '</span>' +
+              '<span class="truncate ' +
+              textClass +
+              '">' +
+              escapeHtml(t.text) +
+              '</span>' +
+              '</button>' +
+              '<button type="button" class="todo-delete opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-muted-foreground px-1">✕</button>' +
+              '</li>'
+            );
+          })
+          .join('');
+
+        todoListEl.querySelectorAll('.todo-toggle').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const li = btn.closest('li');
+            const id = li && li.getAttribute('data-id');
+            if (!id) return;
+            const idx = todos.findIndex((t) => t.id === id);
+            if (idx === -1) return;
+            todos[idx].done = !todos[idx].done;
+            persistTodos();
+            renderTodos();
+            updateTodoCount();
+          });
+        });
+
+        todoListEl.querySelectorAll('.todo-delete').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const li = btn.closest('li');
+            const id = li && li.getAttribute('data-id');
+            if (!id) return;
+            todos = todos.filter((t) => t.id !== id);
+            persistTodos();
+            renderTodos();
+            updateTodoCount();
+          });
+        });
+      }
+
+      function updateSelectedLabel() {
+        if (!calendarSelected) return;
+        const y = selectedDate.getFullYear();
+        const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const d = String(selectedDate.getDate()).padStart(2, '0');
+        calendarSelected.textContent = `선택: ${y}.${m}.${d} (${weekdayKo(selectedDate)})`;
+      }
+
+      function renderCalendar(date) {
+        if (!calendarGrid || !monthLabel) return;
+
+        const year = date.getFullYear();
+        const month = date.getMonth();
+
+        monthLabel.textContent = `${year}.${String(month + 1).padStart(2, '0')}`;
+
+        const firstDay = new Date(year, month, 1);
+        const startWeekday = firstDay.getDay();
+        const startDate = new Date(year, month, 1 - startWeekday);
+
+        const today = new Date();
+        const todayKey = ymd(today);
+
+        calendarGrid.innerHTML = '';
+
+        for (let i = 0; i < 42; i++) {
+          const d = new Date(startDate);
+          d.setDate(startDate.getDate() + i);
+
+          const inMonth = d.getMonth() === month;
+          const isToday = ymd(d) === todayKey;
+          const isSelected = ymd(d) === ymd(selectedDate);
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className =
+            'h-8 w-8 rounded-md flex items-center justify-center transition ' +
+            (inMonth ? 'text-foreground' : 'text-muted-foreground opacity-50') +
+            (isToday ? ' ring-1 ring-primary/50' : '') +
+            (isSelected
+              ? ' bg-primary text-primary-foreground'
+              : ' hover:bg-muted/60');
+
+          btn.textContent = String(d.getDate());
+
+          btn.addEventListener('click', () => {
+            selectedDate = d;
+            updateSelectedLabel();
+            renderCalendar(currentMonth);
+            loadTodosForSelectedDate();
+          });
+
+          calendarGrid.appendChild(btn);
+        }
+
+        updateSelectedLabel();
+      }
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          currentMonth = new Date(
+            currentMonth.getFullYear(),
+            currentMonth.getMonth() - 1,
+            1
+          );
+          renderCalendar(currentMonth);
+        });
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          currentMonth = new Date(
+            currentMonth.getFullYear(),
+            currentMonth.getMonth() + 1,
+            1
+          );
+          renderCalendar(currentMonth);
+        });
+      }
+
+      if (todoInput) {
+        todoInput.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter') return;
+          const v = todoInput.value.trim();
+          if (!v) return;
+          const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          todos.unshift({ id, text: v, done: false });
+          todoInput.value = '';
+          persistTodos();
+          renderTodos();
+          updateTodoCount();
+        });
+      }
+
+      loadTodosForSelectedDate();
+
+      function safeJsonParse(raw, fallback = null) {
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return fallback;
+        }
+      }
+
+      function readAuthCache() {
+        const cached = safeJsonParse(localStorage.getItem(AUTH_KEY) || 'null', null);
+        return cached && typeof cached === 'object' ? cached : null;
+      }
+
+      function writeAuthCache(user, onboardingComplete) {
+        if (!user) return;
+        const providerId =
+          (user.providerData &&
+            user.providerData[0] &&
+            user.providerData[0].providerId) ||
+          (user.isAnonymous ? 'anonymous' : 'firebase');
+        const provider =
+          providerId === 'google.com'
+            ? 'google'
+            : providerId === 'password'
+            ? 'password'
+            : providerId;
+
+        localStorage.setItem(
+          AUTH_KEY,
+          JSON.stringify({
+            uid: user.uid || null,
+            email: user.email || null,
+            displayName: user.displayName || null,
+            provider,
+            onboardingComplete: !!onboardingComplete,
+          })
+        );
+      }
+
+      async function ensureUserProfile(user) {
+        if (!db || !user || !user.uid) return { onboardingComplete: false };
+        const ref = db.collection('users').doc(user.uid);
+
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        const providerIds = Array.from(
+          new Set(
+            (user.providerData || [])
+              .map((p) => p && p.providerId)
+              .filter(Boolean)
+          )
+        );
+
+        const base = {
+          uid: user.uid,
+          email: user.email || null,
+          displayName: user.displayName || null,
+          photoURL: user.photoURL || null,
+          providerIds,
+          lastSeenAt: now,
+        };
+
+        const snap = await ref.get();
+        if (!snap.exists) {
+          await ref.set(
+            { ...base, createdAt: now, onboardingComplete: false },
+            { merge: true }
+          );
+          return { onboardingComplete: false };
+        }
+
+        await ref.set(base, { merge: true });
+        return snap.data() || { onboardingComplete: false };
+      }
+
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          if (__fw_authGateTimer) clearTimeout(__fw_authGateTimer);
+          __fw_authGateTimer = setTimeout(() => {
+            try {
+              if (!auth.currentUser) {
+                localStorage.removeItem(AUTH_KEY);
+                window.location.replace('login.html');
+              }
+            } catch (e) {
+              localStorage.removeItem(AUTH_KEY);
+              window.location.replace('login.html');
+            }
+          }, 900);
+          return;
+        }
+
+        if (__fw_authGateTimer) {
+          clearTimeout(__fw_authGateTimer);
+          __fw_authGateTimer = null;
+        }
+
+        let onboardingComplete = false;
+        try {
+          const profile = await ensureUserProfile(user);
+          onboardingComplete = !!profile.onboardingComplete;
+        } catch (e) {
+          const cached = readAuthCache();
+          onboardingComplete = !!(cached && cached.uid === user.uid && cached.onboardingComplete);
+          console.warn('Profile load failed; falling back to cache:', e);
+        }
+
+        writeAuthCache(user, onboardingComplete);
+
+        if (!onboardingComplete) {
+          window.location.replace('onboarding.html');
+          return;
+        }
+
+        currentUser = user;
+        await loadOntology();
+        fetchMemosFromServer();
+        loadTodosForSelectedDate();
+      });
+
+      renderMemos();
+      renderCalendar(currentMonth);
+      renderTodos();
+      // [PATCH] 추천 카드 클릭 바인딩(안전하게 1회)
+      bindRecoCardNavigation();
+    </script>
+
+    <script>
+      function labelOf(tagId) {
+        const KOR = {
+          'emotion:despair': '절망',
+          'emotion:fear': '두려움',
+          'emotion:doubt': '의심',
+          'emotion:loneliness': '외로움',
+          'emotion:betrayal': '배신감',
+          'emotion:attachment_anxiety': '애착 불안',
+          'root:belief_conflict': '신념 충돌',
+          'root:self_doubt': '자기 의심',
+          'root:attachment_wound': '애착 상처',
+          'root:trust_issue': '신뢰 문제',
+          'relationship:toxic': '유해한 관계',
+          'relationship:intimate': '긴밀한 관계',
+          'relationship:distant': '거리감',
+          'intent:persevere': '버티기',
+          'intent:resolve': '다짐',
+          'intent:reflect': '성찰',
+          'intent:escape': '도피',
+          'context:spirituality': '영성/신앙 맥락',
+          'context:timing': '시기/타이밍',
+          'context:night': '밤/야간',
+          'context:memory': '기억 맥락',
+          'narrative:first_person': '1인칭 서술',
+          'narrative:inner_monologue': '내적 독백',
+          'artifact:memo': '메모',
+        };
+        return KOR[tagId] || tagId;
+      }
+
+      window.limitTagChipsToFive = function (container = document) {
+        container.querySelectorAll('[data-card-tags]').forEach((wrap) => {
+          const chips = wrap.querySelectorAll('.tag-chip');
+          chips.forEach((chip, idx) => {
+            chip.style.display = idx < 5 ? '' : 'none';
+            const t = chip.textContent.trim();
+            chip.textContent = labelOf(t);
+          });
+        });
+      };
+
+      document.addEventListener('DOMContentLoaded', () => {
+        window.limitTagChipsToFive(document);
+      });
+    </script>
+  </body>
+</html>

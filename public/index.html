@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FOR:WORD - 메모에서 글로</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --background: 48 24% 96%;
+      --surface: 0 0% 100%;
+      --text: 221 39% 11%;
+      --muted: 220 9% 46%;
+      --outline: 220 13% 91%;
+      --primary: 211 39% 23%;
+      --primary-foreground: 0 0% 100%;
+      --secondary: 152 56% 28%;
+      --secondary-foreground: 0 0% 100%;
+      --tertiary: 263 70% 50%;
+      --warning: 38 92% 50%;
+      --danger: 0 72% 51%;
+      --radius: 1rem;
+    }
+    
+    .dark {
+      --background: 222 49% 8%;
+      --surface: 221 51% 12%;
+      --text: 220 48% 94%;
+      --muted: 222 17% 70%;
+      --outline: 218 34% 22%;
+      --primary: 220 100% 74%;
+      --secondary: 160 64% 54%;
+      --tertiary: 260 100% 81%;
+    }
+    
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: hsl(var(--background));
+      color: hsl(var(--text));
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    
+    .boot-container {
+      text-align: center;
+    }
+    
+    .logo-wrapper {
+      position: relative;
+      margin-bottom: 2rem;
+    }
+    
+    .logo {
+      width: 5rem;
+      height: 5rem;
+      border-radius: 1rem;
+      background: hsl(var(--primary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: pulse-soft 2s ease-in-out infinite;
+    }
+    
+    .logo svg {
+      width: 2.5rem;
+      height: 2.5rem;
+      color: hsl(var(--primary-foreground));
+    }
+    
+    .logo-ping {
+      position: absolute;
+      inset: 0;
+      width: 5rem;
+      height: 5rem;
+      border-radius: 1rem;
+      background: hsl(var(--primary) / 0.2);
+      animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+    }
+    
+    .brand-name {
+      font-size: 1.875rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    
+    .brand-tagline {
+      color: hsl(var(--muted));
+    }
+    
+    .loading-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 3rem;
+    }
+    
+    .dot {
+      width: 0.5rem;
+      height: 0.5rem;
+      border-radius: 50%;
+      background: hsl(var(--primary));
+      animation: bounce 1s ease-in-out infinite;
+    }
+    
+    .dot:nth-child(2) { animation-delay: 0.15s; }
+    .dot:nth-child(3) { animation-delay: 0.3s; }
+    
+    .error-container {
+      text-align: center;
+    }
+    
+    .error-icon {
+      width: 4rem;
+      height: 4rem;
+      border-radius: 1rem;
+      background: hsl(var(--danger) / 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+    
+    .error-icon svg {
+      width: 2rem;
+      height: 2rem;
+      color: hsl(var(--danger));
+    }
+    
+    .error-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .error-message {
+      color: hsl(var(--muted));
+      margin-bottom: 1.5rem;
+    }
+    
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      background: hsl(var(--primary));
+      color: hsl(var(--primary-foreground));
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+    
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+    }
+    
+    @keyframes ping {
+      75%, 100% { transform: scale(1.5); opacity: 0; }
+    }
+    
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-0.5rem); }
+    }
+    
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="boot" class="boot-container">
+    <div class="logo-wrapper">
+      <div class="logo">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/>
+        </svg>
+      </div>
+      <div class="logo-ping"></div>
+    </div>
+    <h1 class="brand-name">FOR:WORD</h1>
+    <p class="brand-tagline">메모에서 글로, 생각의 연결</p>
+    <div class="loading-dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+  
+  <div id="error" class="error-container hidden">
+    <div class="error-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m12 19 7-7 3 3-7 7-3-3z"/><path d="m18 13-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="m2 2 7.586 7.586"/><circle cx="11" cy="11" r="2"/>
+      </svg>
+    </div>
+    <h2 class="error-title">오류 발생</h2>
+    <p class="error-message">앱을 불러오는 중 오류가 발생했습니다.</p>
+    <button class="btn-primary" onclick="location.reload()">다시 시도</button>
+  </div>
+  
+  <script>
+    const DB_KEY = 'forword.db.v1';
+    const AUTH_KEY = 'forword.auth.v1';
+    const THEME_KEY = 'forword.theme';
+    
+    function getTheme() {
+      return localStorage.getItem(THEME_KEY) || 'light';
+    }
+    
+    function setTheme(theme) {
+      localStorage.setItem(THEME_KEY, theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+    
+    function getAuth() {
+      const auth = localStorage.getItem(AUTH_KEY);
+      return auth ? JSON.parse(auth) : null;
+    }
+    
+    async function init() {
+      try {
+        setTheme(getTheme());
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        const user = getAuth();
+        
+        if (!user) {
+          window.location.href = 'login.html';
+        } else if (!user.onboardingComplete) {
+          window.location.href = 'onboarding.html';
+        } else {
+          window.location.href = 'home.html';
+        }
+      } catch (err) {
+        document.getElementById('boot').classList.add('hidden');
+        document.getElementById('error').classList.remove('hidden');
+      }
+    }
+    
+    init();
+  </script>
+</body>
+</html>

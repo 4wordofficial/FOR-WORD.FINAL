@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>설정 - FOR:WORD</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--background:48 24% 96%;--foreground:221 39% 11%;--muted:220 9% 46%;--card:0 0% 100%;--primary:211 39% 23%;--primary-foreground:0 0% 100%;--tertiary:263 70% 50%;--warning:38 92% 50%;--destructive:0 72% 51%;--border:220 13% 91%}
+    .dark{--background:222 49% 8%;--foreground:220 48% 94%;--muted:222 17% 70%;--card:221 51% 12%;--primary:220 100% 74%;--primary-foreground:222 49% 8%;--tertiary:260 100% 81%;--border:218 34% 22%}
+    html{font-family:'Pretendard Variable',Pretendard,-apple-system,system-ui,sans-serif}
+    body{background:hsl(var(--background));color:hsl(var(--foreground));min-height:100vh}
+    .app-layout{display:flex;min-height:100vh}
+    .sidebar{display:none;width:16rem;background:hsl(var(--card));border-right:1px solid hsl(var(--border));flex-direction:column}
+    @media(min-width:1024px){.sidebar{display:flex}}
+    .sidebar-header{padding:1.5rem;border-bottom:1px solid hsl(var(--border))}
+    .logo-row{display:flex;align-items:center;gap:.75rem;text-decoration:none}
+    .logo-box{width:2.5rem;height:2.5rem;border-radius:.75rem;background:hsl(var(--primary));display:flex;align-items:center;justify-content:center}
+    .logo-box svg{width:1.25rem;height:1.25rem;color:hsl(var(--primary-foreground))}
+    .logo-text{font-size:1.25rem;font-weight:700;color:hsl(var(--foreground))}
+    .sidebar-nav{flex:1;padding:1rem;display:flex;flex-direction:column;gap:.25rem}
+    .nav-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border-radius:.75rem;color:hsl(var(--muted));font-weight:500;text-decoration:none;transition:all .2s}
+    .nav-item:hover{background:hsl(var(--muted)/.2);color:hsl(var(--foreground))}
+    .nav-item.active{background:hsl(var(--primary)/.1);color:hsl(var(--primary))}
+    .nav-item svg{width:1.25rem;height:1.25rem}
+    .main-wrapper{flex:1;display:flex;flex-direction:column}
+    .header{position:sticky;top:0;z-index:40;background:hsl(var(--card)/.8);backdrop-filter:blur(12px);border-bottom:1px solid hsl(var(--border))}
+    .header-content{display:flex;align-items:center;justify-content:space-between;padding:0 1rem;height:4rem}
+    @media(min-width:1024px){.header-content{padding:0 2rem}}
+    .header-title{font-size:1.125rem;font-weight:600;color:hsl(var(--foreground))}
+    .menu-btn{display:block;padding:.5rem;background:none;border:none;cursor:pointer;color:hsl(var(--foreground))}
+    @media(min-width:1024px){.menu-btn{display:none}}
+    .main-content{flex:1;padding:1rem;padding-bottom:6rem}
+    @media(min-width:1024px){.main-content{padding:2rem}}
+    .container{max-width:40rem;margin:0 auto;display:flex;flex-direction:column;gap:1.5rem}
+    .paper-card{background:hsl(var(--card));border-radius:1rem;border:1px solid hsl(var(--border)/.5);box-shadow:0 1px 2px hsl(var(--foreground)/.02),0 4px 8px hsl(var(--foreground)/.04);padding:1.25rem}
+    .section-title{font-size:1.125rem;font-weight:600;color:hsl(var(--foreground));margin-bottom:1rem}
+    .theme-toggle{display:flex;align-items:center;justify-content:space-between;padding:1rem;border-radius:.75rem;background:hsl(var(--muted)/.1);cursor:pointer;border:none;width:100%;font-family:inherit;transition:all .2s}
+    .theme-toggle:hover{background:hsl(var(--muted)/.2)}
+    .theme-info{display:flex;align-items:center;gap:.75rem}
+    .theme-info svg{width:1.25rem;height:1.25rem}
+    .theme-label{font-weight:500;color:hsl(var(--foreground))}
+    .toggle-track{width:3rem;height:1.5rem;border-radius:9999px;background:hsl(var(--border));padding:.25rem;transition:background .2s}
+    .toggle-track.active{background:hsl(var(--primary))}
+    .toggle-thumb{width:1rem;height:1rem;border-radius:50%;background:hsl(var(--card));transition:transform .2s}
+    .toggle-track.active .toggle-thumb{transform:translateX(1.5rem)}
+    .style-row{display:flex;justify-content:space-between;padding:.75rem 0;border-bottom:1px solid hsl(var(--border)/.5)}
+    .style-row:last-child{border-bottom:none}
+    .style-label{color:hsl(var(--muted))}
+    .style-value{font-weight:500;color:hsl(var(--foreground))}
+    .data-buttons{display:flex;flex-direction:column;gap:.75rem}
+    .ink-button{display:flex;align-items:center;gap:.5rem;padding:.625rem 1.25rem;border-radius:.75rem;font-weight:500;font-size:.875rem;background:hsl(var(--primary));color:hsl(var(--primary-foreground));border:none;cursor:pointer;transition:all .2s;font-family:inherit;width:100%;justify-content:flex-start}
+    .ink-button:hover{opacity:.9}
+    .ink-button svg{width:1rem;height:1rem}
+    .ink-button-outline{background:transparent;color:hsl(var(--foreground));border:1px solid hsl(var(--border))}
+    .ink-button-outline:hover{background:hsl(var(--muted)/.2)}
+    .ink-button-danger{background:transparent;color:hsl(var(--destructive));border:1px solid hsl(var(--destructive))}
+    .ink-button-danger:hover{background:hsl(var(--destructive)/.1)}
+    .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:hsl(var(--card));border-top:1px solid hsl(var(--border));z-index:40;padding-bottom:env(safe-area-inset-bottom)}
+    @media(min-width:1024px){.bottom-nav{display:none}}
+    .bottom-nav-content{display:flex;align-items:center;justify-content:space-around;height:4rem;width:100%}
+    .bottom-nav-item{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.5rem;color:hsl(var(--muted));text-decoration:none}
+    .bottom-nav-item.active{color:hsl(var(--primary))}
+    .bottom-nav-item svg{width:1.25rem;height:1.25rem}
+    .bottom-nav-item span{font-size:.75rem;font-weight:500}
+  </style>
+</head>
+<body>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <div class="sidebar-header"><a href="home.html" class="logo-row"><div class="logo-box"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19 7-7 3 3-7 7-3-3z"/><circle cx="11" cy="11" r="2"/></svg></div><span class="logo-text">FOR:WORD</span></a></div>
+      <nav class="sidebar-nav">
+        <a href="home.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>홈</a>
+        <a href="graph.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/></svg>그래프</a>
+        <a href="editor.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19 7-7 3 3-7 7-3-3z"/></svg>에디터</a>
+        <a href="projects.html" class="nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20"/></svg>프로젝트</a>
+        <a href="settings.html" class="nav-item active"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>설정</a>
+      </nav>
+    </aside>
+    <div class="main-wrapper">
+      <header class="header"><div class="header-content"><button class="menu-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:1.5rem;height:1.5rem"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg></button><h1 class="header-title">설정</h1><div></div></div></header>
+      <main class="main-content">
+        <div class="container">
+          <section class="paper-card">
+            <h2 class="section-title">테마</h2>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">
+              <div class="theme-info">
+                <svg id="themeIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:hsl(var(--warning))"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                <span class="theme-label" id="themeLabel">라이트 모드</span>
+              </div>
+              <div class="toggle-track" id="toggleTrack"><div class="toggle-thumb"></div></div>
+            </button>
+          </section>
+          <section class="paper-card">
+            <h2 class="section-title">글쓰기 스타일</h2>
+            <div class="style-row"><span class="style-label">톤</span><span class="style-value" id="styleTone">담담</span></div>
+            <div class="style-row"><span class="style-label">문장 길이</span><span class="style-value" id="styleLength">중</span></div>
+            <div class="style-row"><span class="style-label">선호 기법</span><span class="style-value">없음</span></div>
+          </section>
+          <section class="paper-card">
+            <h2 class="section-title">데이터 관리</h2>
+            <div class="data-buttons">
+              <button class="ink-button ink-button-outline" onclick="exportData()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>데이터 내보내기</button>
+              <button class="ink-button ink-button-outline" onclick="resetData()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>데모 데이터로 초기화</button>
+              <button class="ink-button ink-button-danger" onclick="deleteAll()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>모든 데이터 삭제</button>
+            </div>
+          </section>
+          <section class="paper-card">
+            <h2 class="section-title">계정</h2>
+            <button class="ink-button ink-button-outline" onclick="logout()"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>로그아웃</button>
+          </section>
+        </div>
+      </main>
+      <nav class="bottom-nav"><div class="bottom-nav-content">
+        <a href="home.html" class="bottom-nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>홈</span></a>
+        <a href="graph.html" class="bottom-nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/></svg><span>그래프</span></a>
+        <a href="editor.html" class="bottom-nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19 7-7 3 3-7 7-3-3z"/></svg><span>에디터</span></a>
+        <a href="projects.html" class="bottom-nav-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20"/></svg><span>프로젝트</span></a>
+        <a href="settings.html" class="bottom-nav-item active"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg><span>설정</span></a>
+      </div></nav>
+    </div>
+  </div>
+  <script>
+    const DB_KEY='forword.db.v1',AUTH_KEY='forword.auth.v1',THEME_KEY='forword.theme',STYLE_KEY='forword.style.v1';
+    if(!JSON.parse(localStorage.getItem(AUTH_KEY)||'null')?.onboardingComplete)window.location.href='index.html';
+    
+    let currentTheme=localStorage.getItem(THEME_KEY)||'light';
+    function applyTheme(){
+      if(currentTheme==='dark'){document.documentElement.classList.add('dark');document.getElementById('themeLabel').textContent='다크 모드';document.getElementById('toggleTrack').classList.add('active');document.getElementById('themeIcon').innerHTML='<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>';}
+      else{document.documentElement.classList.remove('dark');document.getElementById('themeLabel').textContent='라이트 모드';document.getElementById('toggleTrack').classList.remove('active');document.getElementById('themeIcon').innerHTML='<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>';}
+    }
+    applyTheme();
+    
+    function toggleTheme(){currentTheme=currentTheme==='light'?'dark':'light';localStorage.setItem(THEME_KEY,currentTheme);applyTheme();}
+    
+    const style=JSON.parse(localStorage.getItem(STYLE_KEY)||'{"tone":"담담","sentenceLength":"중"}');
+    document.getElementById('styleTone').textContent=style.tone||'담담';
+    document.getElementById('styleLength').textContent=style.sentenceLength||'중';
+    
+    function exportData(){
+      const data={db:localStorage.getItem(DB_KEY),auth:localStorage.getItem(AUTH_KEY),style:localStorage.getItem(STYLE_KEY)};
+      const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='forword-backup-'+new Date().toISOString().split('T')[0]+'.json';a.click();
+    }
+    function resetData(){if(confirm('데모 데이터로 초기화하시겠습니까?')){localStorage.removeItem(DB_KEY);location.reload();}}
+    function deleteAll(){if(confirm('모든 데이터를 삭제하시겠습니까?')){localStorage.clear();window.location.href='index.html';}}
+    function logout(){localStorage.removeItem(AUTH_KEY);window.location.href='index.html';}
+  </script>
+</body>
+</html>

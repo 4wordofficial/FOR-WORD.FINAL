@@ -1,0 +1,2712 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Editor | FOR:WORD Standalone</title>
+    <meta
+      name="description"
+      content="문서·노트·산출물을 A4 레이아웃으로 정리하는 FOR:WORD Editor 페이지"
+    />
+
+    <!-- Inter 폰트 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --background: 220 40% 98%;
+        --foreground: 220 30% 20%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 220 30% 20%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 220 30% 20%;
+
+        --primary: 90 60% 70%;
+        --primary-foreground: 90 40% 20%;
+
+        --secondary: 320 70% 88%;
+        --secondary-foreground: 320 40% 25%;
+
+        --muted: 220 25% 96%;
+        --muted-foreground: 220 15% 50%;
+
+        --accent: 200 75% 80%;
+        --accent-foreground: 200 40% 25%;
+
+        --destructive: 350 70% 65%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 220 20% 90%;
+        --input: 220 20% 90%;
+        --ring: 90 60% 70%;
+
+        --radius: 1rem;
+      }
+
+      *,
+      ::before,
+      ::after {
+        border-color: hsl(var(--border));
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
+      }
+
+      /* ───────── 중앙 A4 에디터 ───────── */
+      .a4-wrapper {
+        padding: 12px 0 24px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .a4-page {
+        position: relative;
+        width: 100%;
+        max-width: 1020px;
+        aspect-ratio: 210 / 297; /* A4 세로 비율 */
+        background-color: #ffffff;
+        border-radius: 0;
+        box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
+        border: 1px solid hsl(var(--border));
+        padding: 32px 36px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 좌측 패널이 접혔을 때 A4 가로 폭 확장 */
+      #editor-layout.left-collapsed .a4-page {
+        max-width: 1180px;
+      }
+
+      .a4-page-header {
+        position: absolute;
+        top: 16px;
+        right: 28px;
+        font-size: 11px;
+        color: hsl(var(--muted-foreground));
+        letter-spacing: 0.08em;
+      }
+
+      .page-body {
+        outline: none;
+        font-size: 0.95rem;
+        line-height: 1.7;
+        color: hsl(var(--foreground));
+        flex: 1;
+        overflow-y: auto;
+        margin-top: 8px;
+        white-space: pre-wrap;
+      }
+
+      .page-body:empty::before {
+        content: "여기에서 문서를 작성하세요.";
+        color: hsl(var(--muted-foreground));
+      }
+
+      /* ───────── 좌측 트리 스타일 ───────── */
+      .tree-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: hsl(var(--muted-foreground)) transparent;
+      }
+
+      .tree-scroll::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .tree-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .tree-scroll::-webkit-scrollbar-thumb {
+        background: hsla(var(--muted-foreground), 0.3);
+        border-radius: 9999px;
+      }
+
+      .tree-item-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        border-radius: 9999px;
+        padding: 4px 8px;
+        cursor: pointer;
+        transition: background-color 0.12s ease, color 0.12s ease;
+      }
+
+      .tree-item-row:hover {
+        background-color: hsl(var(--muted));
+      }
+
+      .tree-item-row.active {
+        background-color: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+      }
+
+      .tree-item-title {
+        flex: 1;
+        min-width: 0;
+        font-size: 12px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .tree-item-prefix {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .tree-actions {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+      }
+
+      .tree-item-row:hover .tree-actions {
+        opacity: 1;
+      }
+
+      .tree-actions button {
+        border-radius: 9999px;
+        border: 1px solid transparent;
+        background-color: transparent;
+        padding: 2px;
+        width: 18px;
+        height: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .tree-actions button:hover {
+        background-color: hsla(var(--muted-foreground), 0.08);
+      }
+
+      .tree-actions button[data-action="delete"]:hover {
+        background-color: hsla(var(--destructive), 0.12);
+      }
+
+      .tree-drop-target {
+        outline: 1px dashed hsla(var(--primary), 0.8);
+        outline-offset: 1px;
+      }
+
+      /* ───────── 에디터 툴바 ───────── */
+      .editor-toolbar button {
+        border-radius: 9999px;
+        border-width: 1px;
+        border-style: solid;
+        border-color: transparent;
+        background-color: hsl(var(--card));
+        padding: 4px 8px;
+        font-size: 11px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .editor-toolbar button:hover {
+        background-color: hsl(var(--muted));
+      }
+
+      .editor-toolbar button[data-active="true"] {
+        border-color: hsl(var(--primary));
+        background-color: hsla(var(--primary), 0.18);
+      }
+
+      /* ───────── 빈 상태 오버레이 ───────── */
+      .editor-empty {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        text-align: center;
+        padding: 0 32px;
+        background: radial-gradient(
+            circle at top left,
+            rgba(255, 255, 255, 0.9),
+            transparent 60%
+          ),
+          radial-gradient(
+            circle at bottom right,
+            rgba(255, 255, 255, 0.9),
+            transparent 60%
+          );
+      }
+
+      .editor-empty-icon {
+        display: flex;
+        height: 48px;
+        width: 48px;
+        border-radius: 9999px;
+        align-items: center;
+        justify-content: center;
+        border: 1px dashed hsl(var(--border));
+        background-color: hsla(var(--card), 0.9);
+      }
+
+      .editor-empty p {
+        margin: 0;
+      }
+
+      .editor-empty-primary {
+        font-size: 12px;
+        color: #9aaad5;
+      }
+
+      .editor-empty-secondary {
+        font-size: 12px;
+        color: hsl(var(--muted-foreground));
+      }
+
+      /* 인박스 메모 인용 스타일 */
+      .memo-citation {
+        font-size: 0.8rem;
+        color: hsl(var(--muted-foreground));
+        margin-top: 0.25rem;
+        font-style: normal;
+      }
+
+      .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      /* 우측 탭 컨텐츠 기본 숨김 */
+      .tab-content {
+        display: none;
+      }
+
+      /* ───────── 3분할 레이아웃 ───────── */
+      #editor-layout {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      @media (min-width: 1024px) {
+        #editor-layout {
+          grid-template-columns: 280px minmax(0, 2.2fr) minmax(0, 1fr);
+        }
+        #editor-layout.left-collapsed {
+          grid-template-columns: 56px minmax(0, 2.6fr) minmax(0, 1.1fr);
+        }
+      }
+
+      #left-panel {
+        transition: width 0.18s ease, padding 0.18s ease;
+        overflow: hidden; /* 모서리 클리핑, 스크롤은 floating-panel에서 */
+      }
+
+      #left-panel.left-collapsed .left-panel-header-text,
+      #left-panel.left-collapsed .left-panel-add-buttons,
+      #left-panel.left-collapsed #left-panel-main {
+        display: none;
+      }
+
+      #left-panel.left-collapsed .left-panel-header {
+        justify-content: center;
+      }
+
+      /* ───────── 플로팅(스티키) 패널 ───────── */
+      .floating-panel {
+        position: sticky;
+        top: 96px; /* 네비+상단 여백 피해서 고정 */
+        align-self: flex-start;
+        max-height: calc(100vh - 120px);
+        overflow-y: auto;   /* 세로 스크롤 */
+        overflow-x: hidden; /* 가로 스크롤 숨김 */
+      }
+    
+
+      /* Toast (Graph와 동일한 방식) */
+      .toast-container {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 60;
+      }
+      .toast {
+        padding: 12px 14px;
+        border-radius: 12px;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+        border: 1px solid hsl(var(--border));
+        background-color: hsl(var(--card));
+        font-weight: 600;
+        color: hsl(var(--foreground));
+      }
+</style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              border: "hsl(var(--border))",
+              input: "hsl(var(--input))",
+              ring: "hsl(var(--ring))",
+              background: "hsl(var(--background))",
+              foreground: "hsl(var(--foreground))",
+              primary: {
+                DEFAULT: "hsl(var(--primary))",
+                foreground: "hsl(var(--primary-foreground))",
+              },
+              secondary: {
+                DEFAULT: "hsl(var(--secondary))",
+                foreground: "hsl(var(--secondary-foreground))",
+              },
+              destructive: {
+                DEFAULT: "hsl(var(--destructive))",
+                foreground: "hsl(var(--destructive-foreground))",
+              },
+              muted: {
+                DEFAULT: "hsl(var(--muted))",
+                foreground: "hsl(var(--muted-foreground))",
+              },
+              accent: {
+                DEFAULT: "hsl(var(--accent))",
+                foreground: "hsl(var(--accent-foreground))",
+              },
+              popover: {
+                DEFAULT: "hsl(var(--popover))",
+                foreground: "hsl(var(--popover-foreground))",
+              },
+              card: {
+                DEFAULT: "hsl(var(--card))",
+                foreground: "hsl(var(--card-foreground))",
+              },
+            },
+            borderRadius: {
+              lg: "var(--radius)",
+              md: "calc(var(--radius) - 2px)",
+              sm: "calc(var(--radius) - 4px)",
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Firebase SDK (compat) -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-functions-compat.js"></script>
+  </head>
+  <body
+    class="min-h-screen bg-background text-foreground"
+    style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+  >
+    <!-- 네비게이션 -->
+    <nav class="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div class="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center gap-8">
+            <a
+              href="home.html"
+              class="text-xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent"
+            >
+              FOR:WORD
+            </a>
+            <div class="hidden md:flex gap-1" id="nav-links"></div>
+          </div>
+
+          <!-- 🔹 우측 상단 로그아웃 (Home과 동일 스타일) -->
+          <div class="flex items-center gap-3">
+            <button
+              id="logout-btn"
+              class="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition"
+            >
+              <i data-lucide="log-out" class="w-3 h-3"></i>
+              로그아웃
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 메인 -->
+    <main class="max-w-[2000px] mx-auto px-6 sm:px-8 lg:px-12 py-8">
+      <div class="space-y-6">
+        <!-- 3분할 레이아웃 -->
+        <div id="editor-layout" class="grid gap-6">
+          <!-- 좌측: 문서 트리 -->
+          <aside
+            id="left-panel"
+            class="floating-panel rounded-xl border bg-card/80 backdrop-blur-sm shadow-sm flex flex-col min-h-[420px]"
+          >
+            <div
+              class="left-panel-header flex items-center justify-between px-3 py-3 border-b border-border/70"
+            >
+              <div class="left-panel-header-text">
+                <p
+                  class="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase"
+                >
+                  STRUCTURE
+                </p>
+              </div>
+              <div class="flex items-center gap-1">
+                <div class="left-panel-add-buttons flex items-center gap-2">
+                  <div class="flex flex-col items-center gap-0.5">
+                    <button
+                      id="add-root-folder"
+                      class="inline-flex items-center justify-center h-7 w-7 rounded-full border border-input bg-background hover:bg-muted/70 text-muted-foreground"
+                      title="루트에 폴더 추가"
+                    >
+                      <i data-lucide="folder-plus" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                  <div class="flex flex-col items-center gap-0.5">
+                    <button
+                      id="add-root-file"
+                      class="inline-flex items-center justify-center h-7 w-7 rounded-full border border-input bg-background hover:bg-muted/70 text-muted-foreground"
+                      title="루트에 문서 추가"
+                    >
+                      <i data-lucide="file-plus-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                </div>
+                <button
+                  id="toggle-left-panel"
+                  class="left-panel-toggle-btn inline-flex items-center justify-center h-7 w-7 rounded-full border border-input bg-background hover:bg-muted/70 text-muted-foreground"
+                  title="패널 접기"
+                >
+                  <i
+                    id="left-toggle-icon"
+                    data-lucide="chevron-left"
+                    class="w-3.5 h-3.5"
+                  ></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- 좌측 패널 메인 -->
+            <div id="left-panel-main" class="flex-1 flex flex-col">
+              <!-- 폴더/문서 이름 입력 바 -->
+              <div
+                id="project-input-bar"
+                class="px-3 pt-2 pb-3 border-b border-border bg-muted/40 hidden"
+              >
+                <form id="project-input-form" class="flex items-center gap-2">
+                  <input
+                    id="project-input"
+                    type="text"
+                    class="flex-1 rounded-full border border-input bg-background px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/40"
+                    placeholder="이름을 입력하세요"
+                    autocomplete="off"
+                  />
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="submit"
+                      class="inline-flex items-center justify-center h-7 w-7 rounded-full border border-input bg-primary text-primary-foreground hover:brightness-105"
+                      title="추가"
+                    >
+                      <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button
+                      type="button"
+                      id="project-input-cancel"
+                      class="inline-flex items-center justify-center h-7 w-7 rounded-full border border-input bg-background hover:bg-muted/70 text-muted-foreground"
+                      title="취소"
+                    >
+                      <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="flex-1 overflow-y-auto tree-scroll px-2 py-3">
+                <ul id="project-tree" class="space-y-1 text-xs"></ul>
+
+                <!-- 문서가 하나도 없을 때 좌측 힌트 -->
+                <div
+                  id="tree-empty-hint"
+                  class="mt-10 text-[11px] text-muted-foreground text-center px-4 hidden"
+                >
+                  아직 생성된 문서가 없습니다.<br />
+                  위의 <span class="font-semibold">파일 아이콘</span>을 눌러 첫 문서를 만들어 보세요.
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- 중앙: A4 에디터 -->
+          <section
+            class="flex flex-col rounded-xl border bg-muted/60 backdrop-blur-sm shadow-sm min-h-[520px]"
+          >
+            <div class="flex items-center justify-between px-4 py-3 border-b border-border/70">
+              <div class="flex items-center gap-2">
+                <span
+                  class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-card border border-border text-xs text-muted-foreground"
+                >
+                  <i data-lucide="file-pen" class="w-3.5 h-3.5"></i>
+                </span>
+                <div>
+                  <p
+                    id="editor-current-title"
+                    class="text-sm font-semibold text-foreground truncate max-w-[220px]"
+                  >
+                    문서를 선택하세요
+                  </p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2 editor-toolbar">
+                <button id="btn-bold" type="button" title="굵게 (Ctrl/Cmd + B)">
+                  <i data-lucide="bold" class="w-3.5 h-3.5"></i>
+                </button>
+                <button id="btn-italic" type="button" title="기울임 (Ctrl/Cmd + I)">
+                  <i data-lucide="italic" class="w-3.5 h-3.5"></i>
+                </button>
+                <button id="btn-h2" type="button" title="소제목">
+                  <span class="text-[11px] font-semibold">H2</span>
+                </button>
+                <button id="btn-bullet" type="button" title="불릿 리스트">
+                  <i data-lucide="list" class="w-3.5 h-3.5"></i>
+                </button>
+                <button id="btn-save-now" type="button" title="지금 바로 저장">
+                  <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-hidden relative">
+              <!-- 문서 없을 때 빈 상태 -->
+              <div id="editor-empty" class="editor-empty">
+                <div class="editor-empty-icon">
+                  <i data-lucide="file-text" class="w-6 h-6 text-[#9AAAD5]"></i>
+                </div>
+                <div class="space-y-1">
+                  <p class="editor-empty-primary">아직 생성된 문서가 없습니다.</p>
+                  <p class="editor-empty-secondary">
+                    좌측에서 새 문서를 만들거나 아래 버튼을 눌러<br />첫 문서를 생성해 보세요.
+                  </p>
+                </div>
+                <button
+                  id="create-first-doc"
+                  class="mt-2 inline-flex items-center gap-2 rounded-full bg-[#8FD4B9] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[#7AC6A8] active:scale-[0.99] transition"
+                >
+                  <i data-lucide="file-plus-2" class="w-3.5 h-3.5"></i>
+                  첫 문서 만들기
+                </button>
+              </div>
+
+              <!-- 실제 A4 페이지 영역 -->
+              <div
+                id="pages-container"
+                class="h-full overflow-y-auto py-2 px-2 hidden"
+              ></div>
+            </div>
+
+            <div
+              class="flex items-center justify-between px-4 py-2 border-t border-border/70 text-[11px] text-muted-foreground"
+            >
+              <span id="save-status">저장 대기 중</span>
+              <span id="meta-pages" class="opacity-80">페이지 0</span>
+            </div>
+          </section>
+
+          <!-- 우측: AI / 메모 / 연결 탭 -->
+          <aside
+            class="floating-panel rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col min-h-[420px]"
+          >
+            <div class="flex flex-col h-full">
+              <div
+                class="grid w-full grid-cols-3 m-2 rounded-lg bg-muted/60 p-1 gap-1"
+                id="tab-triggers"
+              >
+                <button
+                  data-tab="ai"
+                  class="tab-trigger text-xs inline-flex items-center justify-center gap-1 px-2 py-2 rounded-md text-muted-foreground hover:text-foreground"
+                >
+                  <i data-lucide="bot" class="h-4 w-4"></i>
+                  AI
+                </button>
+                <button
+                  data-tab="memo"
+                  class="tab-trigger text-xs inline-flex items-center justify-center gap-1 px-2 py-2 rounded-md text-muted-foreground hover:text-foreground"
+                >
+                  <i data-lucide="sticky-note" class="h-4 w-4"></i>
+                  메모
+                </button>
+                <button
+                  data-tab="link"
+                  class="tab-trigger text-xs inline-flex items-center justify-center gap-1 px-2 py-2 rounded-md text-muted-foreground hover:text-foreground"
+                >
+                  <i data-lucide="link" class="h-4 w-4"></i>
+                  연결
+                </button>
+              </div>
+              <div class="border-t border-border"></div>
+              <div class="flex-1 overflow-y-auto">
+                <section
+                  data-content="ai"
+                  class="tab-content h-full p-4 space-y-3"
+                  id="ai-tab"
+                ></section>
+                <section
+                  data-content="memo"
+                  class="tab-content h-full"
+                  id="memo-tab"
+                ></section>
+                <section
+                  data-content="link"
+                  class="tab-content h-full p-4 space-y-3"
+                  id="link-tab"
+                ></section>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+
+    <div id="toast-root" class="toast-container"></div>
+
+    <script>
+      // ─────────────────────────────────────────────────────────────
+      // 0) Theme + Firebase init (Home과 동일한 동작)
+      // ─────────────────────────────────────────────────────────────
+      const AUTH_KEY = 'forword.auth.v1';
+      const THEME_KEY = 'forword.theme';
+
+      const __fw_isLocalFile = window.location.protocol === 'file:' || window.location.origin === 'null';
+
+      if (localStorage.getItem(THEME_KEY) === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4Xz5BQEt4SYaKqP8qU9ocac__VQbVgD0",
+        authDomain: "forword-7af6f.firebaseapp.com",
+        projectId: "forword-7af6f",
+        storageBucket: "forword-7af6f.firebasestorage.app",
+        messagingSenderId: "828952645956",
+        appId: "1:828952645956:web:8c25750ea52be169650711",
+        measurementId: "G-7VPEYGEZL3",
+      };
+
+      // 🔹 Canonical host 강제: web.app / firebaseapp.com 혼용으로 인한 세션 분리(=로그아웃처럼 보임) 방지
+      (function enforceCanonicalHost() {
+        const canonical = "forword-7af6f.web.app";
+        const alt = "forword-7af6f.firebaseapp.com";
+        if (location.hostname === alt) {
+          const next = location.href.replace(alt, canonical);
+          location.replace(next);
+        }
+      })();
+
+
+      if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+
+      const auth = firebase.auth();
+      auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch((e) => {
+        console.warn("[Auth] setPersistence(LOCAL) failed; falling back to SESSION:", e);
+        return auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch((e2) => {
+          console.warn("[Auth] setPersistence(SESSION) also failed:", e2);
+        });
+      });
+const db = firebase.firestore();
+      const functions = firebase.app().functions('asia-northeast3');
+      let currentUser = null;
+      let memosCache = []; // Firestore memos
+
+      function safeJsonParse(raw, fallback = null) {
+        try { return JSON.parse(raw); } catch { return fallback; }
+      }
+      function readAuthCache() {
+        const cached = safeJsonParse(localStorage.getItem(AUTH_KEY) || "null", null);
+        return cached && typeof cached === "object" ? cached : null;
+      }
+      function writeAuthCache(user, onboardingComplete) {
+        if (!user) return;
+        const providerId =
+          (user.providerData && user.providerData[0] && user.providerData[0].providerId) ||
+          (user.isAnonymous ? "anonymous" : "firebase");
+        const provider =
+          providerId === "google.com" ? "google" : providerId === "password" ? "password" : providerId;
+
+        localStorage.setItem(
+          AUTH_KEY,
+          JSON.stringify({
+            uid: user.uid || null,
+            email: user.email || null,
+            displayName: user.displayName || null,
+            provider,
+            onboardingComplete: !!onboardingComplete,
+          })
+        );
+      }
+
+      async function ensureUserProfile(user) {
+        if (!db || !user || !user.uid) return { onboardingComplete: false };
+        const ref = db.collection("users").doc(user.uid);
+
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        const providerIds = Array.from(
+          new Set((user.providerData || []).map((p) => p && p.providerId).filter(Boolean))
+        );
+
+        const base = {
+          uid: user.uid,
+          email: user.email || null,
+          displayName: user.displayName || null,
+          photoURL: user.photoURL || null,
+          providerIds,
+          lastSeenAt: now,
+        };
+
+        const snap = await ref.get();
+        if (!snap.exists) {
+          await ref.set({ ...base, createdAt: now, onboardingComplete: false }, { merge: true });
+          return { onboardingComplete: false };
+        }
+
+        await ref.set(base, { merge: true });
+        return snap.data() || { onboardingComplete: false };
+      }
+
+
+      // ───────────────── 공통 네비게이션 ─────────────────
+      const navigation = [
+        { name: 'Dashboard', href: 'index.html', icon: 'layout-dashboard' },
+        { name: 'Graph', href: 'graph.html', icon: 'network' },
+        { name: 'Projects', href: 'projects.html', icon: 'folder-kanban' },
+        { name: 'Editor', href: 'editor.html', icon: 'file-pen' },
+        { name: 'Outputs', href: 'outputs.html', icon: 'file-output' },
+      ];
+
+
+
+      const navLinks = document.getElementById("nav-links");
+      function renderNavigation(activeName) {
+        navLinks.innerHTML = navigation
+          .map(
+            (item) => `
+          <a
+            href="${item.href}"
+            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              item.name === activeName
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            }"
+          >
+            <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+            ${item.name}
+          </a>
+        `
+          )
+          .join("");
+        if (window.lucide) window.lucide.createIcons();
+      }
+      renderNavigation("Editor");
+      // ───────────────── Toast (Graph와 동일한 방식) ─────────────────
+      const toastRoot = document.getElementById("toast-root");
+      const showToast = (message) => {
+        if (!toastRoot) {
+          console.warn("[Toast]", message);
+          return;
+        }
+        const el = document.createElement("div");
+        el.className = "toast";
+        el.textContent = message;
+        toastRoot.appendChild(el);
+        setTimeout(() => el.remove(), 2200);
+      };
+
+
+      // 🔹 로그아웃 (Home과 동일 로직)
+      const logoutBtn = document.getElementById("logout-btn");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", async () => {
+          try {
+            await auth.signOut();
+          } catch (e) {
+            console.error("로그아웃 오류:", e);
+          } finally {
+            localStorage.removeItem(AUTH_KEY);
+            window.location.href = "login.html";
+          }
+        });
+      }
+
+      // ───────────────── 전역 상태 ─────────────────
+      // 트리 & 에디터 관련 DOM
+      const treeEl = document.getElementById("project-tree");
+      const treeEmptyHint = document.getElementById("tree-empty-hint");
+      const pagesContainer = document.getElementById("pages-container");
+      const editorEmptyEl = document.getElementById("editor-empty");
+      const createFirstDocBtn = document.getElementById("create-first-doc");
+
+      const projectInputBar = document.getElementById("project-input-bar");
+      const projectInputForm = document.getElementById("project-input-form");
+      const projectInput = document.getElementById("project-input");
+      const projectInputCancel = document.getElementById(
+        "project-input-cancel"
+      );
+      const btnAddRootFolder = document.getElementById("add-root-folder");
+      const btnAddRootFile = document.getElementById("add-root-file");
+
+      const editorTitleLabel = document.getElementById("editor-current-title");
+      const saveStatusEl = document.getElementById("save-status");
+      const pagesMetaEl = document.getElementById("meta-pages");
+
+      // (우측 META 패널은 제거됨 → optional)
+      const docTitleInput = document.getElementById("doc-title-input");
+      const docTagsInput = document.getElementById("doc-tags-input");
+      const docMetaCreated = document.getElementById("doc-meta-created");
+      const docMetaUpdated = document.getElementById("doc-meta-updated");
+
+      const btnBold = document.getElementById("btn-bold");
+      const btnItalic = document.getElementById("btn-italic");
+      const btnH2 = document.getElementById("btn-h2");
+      const btnBullet = document.getElementById("btn-bullet");
+      const btnSaveNow = document.getElementById("btn-save-now");
+
+      // 좌측 패널 접기 관련
+      const editorLayout = document.getElementById("editor-layout");
+      const leftPanel = document.getElementById("left-panel");
+      const toggleLeftBtn = document.getElementById("toggle-left-panel");
+      const leftToggleIcon = document.getElementById("left-toggle-icon");
+      let isLeftCollapsed = false;
+
+      if (toggleLeftBtn && editorLayout && leftPanel) {
+        toggleLeftBtn.addEventListener("click", () => {
+          isLeftCollapsed = !isLeftCollapsed;
+          editorLayout.classList.toggle("left-collapsed", isLeftCollapsed);
+          leftPanel.classList.toggle("left-collapsed", isLeftCollapsed);
+
+          if (leftToggleIcon) {
+            leftToggleIcon.setAttribute(
+              "data-lucide",
+              isLeftCollapsed ? "chevron-right" : "chevron-left"
+            );
+            if (window.lucide) window.lucide.createIcons();
+          }
+          toggleLeftBtn.setAttribute(
+            "title",
+            isLeftCollapsed ? "패널 펼치기" : "패널 접기"
+          );
+        });
+      }
+
+      // ───────────────── 트리 상태 ─────────────────
+      const projectState = {
+        addType: null,
+        addParentId: null,
+        selectedId: null,
+      };
+
+      const editorState = {
+        currentDocId: null,
+        saveTimer: null,
+        isSaving: false,
+        lastSaved: null,
+        createdAt: null,
+      };
+
+      let projectTree = [];
+      let dragNodeId = null;
+
+      // ─────────────────────────────────────────────────────────────
+      // Handle opening a draft document passed via query parameters
+      // When the editor is opened with ?doc=<docId>, this helper will ensure that the
+      // document is added to the project tree (if it doesn't already exist) and opened.
+      async function handleDraftDocFromQuery() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const docId = params.get('doc');
+          if (!docId || !currentUser) return;
+          // Check if the node already exists in the tree
+          let node = findNode(docId);
+          if (!node) {
+            // create a root-level file node with a placeholder title
+            const newNode = {
+              id: docId,
+              type: 'file',
+              title: 'Draft Document',
+            };
+            projectTree.push(newNode);
+            persistTree();
+            node = newNode;
+          }
+          projectState.selectedId = docId;
+          renderProjectTree();
+          const targetNode = findNode(docId);
+          if (targetNode) {
+            await openDocForNode(targetNode);
+          }
+        } catch (e) {
+          console.error('handleDraftDocFromQuery error:', e);
+        }
+      }
+
+      // ───────────────── 유틸 ─────────────────
+      function genId(prefix = "node") {
+        return `${prefix}_${Date.now().toString(36)}_${Math.random()
+          .toString(36)
+          .slice(2, 7)}`;
+      }
+
+      function formatDateTime(ts) {
+        if (!ts) return "-";
+        const d =
+          typeof ts === "number" ? new Date(ts) : ts.toDate ? ts.toDate() : new Date(ts);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        return `${y}.${m}.${day} ${hh}:${mm}`;
+      }
+
+      function loadTreeFromStorage() {
+        return [];
+      }
+
+      function saveTreeToStorage() {
+        /* no-op: localStorage 사용 안 함 */
+      }
+
+      // 트리 Firestore 저장/로드
+      async function loadTreeFromFirestore(user) {
+        if (!user) return null;
+        try {
+          const docRef = db
+            .collection("users")
+            .doc(user.uid)
+            .collection("settings")
+            .doc("editorTree");
+          const snap = await docRef.get();
+          if (!snap.exists) return null;
+          const data = snap.data() || {};
+          if (Array.isArray(data.tree)) return data.tree;
+          return null;
+        } catch (e) {
+          console.error("트리 Firestore 로드 오류:", e);
+          return null;
+        }
+      }
+
+      function saveTreeToFirestore() {
+        if (!currentUser) return;
+        try {
+          const docRef = db
+            .collection("users")
+            .doc(currentUser.uid)
+            .collection("settings")
+            .doc("editorTree");
+          docRef
+            .set(
+              {
+                tree: projectTree,
+                updatedAt: Date.now(),
+              },
+              { merge: true }
+            )
+            .catch((e) =>
+              console.error("트리 Firestore 저장 오류(set 내부):", e)
+            );
+        } catch (e) {
+          console.error("트리 Firestore 저장 오류:", e);
+        }
+      }
+
+      function persistTree() {
+        saveTreeToFirestore();
+      }
+
+      function findNode(id, nodes = projectTree) {
+        for (const node of nodes) {
+          if (node.id === id) return node;
+          if (node.type === "folder" && Array.isArray(node.children)) {
+            const found = findNode(id, node.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      function findNodeAndParent(id, nodes = projectTree, parent = null) {
+        for (let i = 0; i < nodes.length; i++) {
+          const node = nodes[i];
+          if (node.id === id) {
+            return { node, parent, index: i };
+          }
+          if (node.type === "folder" && Array.isArray(node.children)) {
+            const found = findNodeAndParent(id, node.children, node);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      function detachNode(id) {
+        const res = findNodeAndParent(id, projectTree, null);
+        if (!res) return null;
+        const { node, parent, index } = res;
+        if (parent) {
+          parent.children.splice(index, 1);
+        } else {
+          projectTree.splice(index, 1);
+        }
+        return node;
+      }
+
+      function insertNodeAsChild(parentNode, node) {
+        if (parentNode.type !== "folder") return;
+        if (!Array.isArray(parentNode.children)) parentNode.children = [];
+        parentNode.children.push(node);
+      }
+
+      function insertNodeAfterSibling(targetId, node) {
+        const res = findNodeAndParent(targetId, projectTree, null);
+        if (!res) return;
+        const { parent, index } = res;
+        const list = parent ? parent.children : projectTree;
+        list.splice(index + 1, 0, node);
+      }
+
+      function treeHasFile(nodes = projectTree) {
+        for (const node of nodes) {
+          if (node.type === "file") return true;
+          if (node.children && treeHasFile(node.children)) return true;
+        }
+        return false;
+      }
+
+      function getFirstFileNode(nodes = projectTree) {
+        for (const node of nodes) {
+          if (node.type === "file") return node;
+          if (node.children) {
+            const found = getFirstFileNode(node.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      function updateEditorEmptyState(hasFile) {
+        if (!editorEmptyEl || !pagesContainer || !treeEmptyHint) return;
+        if (hasFile) {
+          editorEmptyEl.classList.add("hidden");
+          pagesContainer.classList.remove("hidden");
+          treeEmptyHint.classList.add("hidden");
+        } else {
+          editorEmptyEl.classList.remove("hidden");
+          pagesContainer.classList.add("hidden");
+          treeEmptyHint.classList.remove("hidden");
+          if (editorTitleLabel) {
+            editorTitleLabel.textContent = "문서를 생성해 보세요";
+          }
+          if (docTitleInput) docTitleInput.value = "";
+          if (docTagsInput) docTagsInput.value = "";
+          if (docMetaCreated) docMetaCreated.textContent = "-";
+          if (docMetaUpdated) docMetaUpdated.textContent = "-";
+          pagesMetaEl.textContent = "페이지 0";
+          editorState.currentDocId = null;
+        }
+      }
+
+      // ───────────────── 트리 렌더링 ─────────────────
+      function renderProjectTree() {
+        treeEl.innerHTML = "";
+
+        function createNodeElement(node, depth) {
+          const li = document.createElement("li");
+          li.dataset.id = node.id;
+
+          const row = document.createElement("div");
+          row.className = "tree-item-row";
+          if (node.id === projectState.selectedId) {
+            row.classList.add("active");
+          }
+          row.style.paddingLeft = `${4 + depth * 12}px`;
+
+          const prefix = document.createElement("div");
+          prefix.className = "tree-item-prefix";
+
+          const iconSpan = document.createElement("span");
+          iconSpan.className =
+            "inline-flex items-center justify-center h-5 w-5 rounded-full border border-border/80 bg-background/70";
+          const icon = document.createElement("i");
+          icon.setAttribute(
+            "data-lucide",
+            node.type === "folder" ? "folder" : "file-text"
+          );
+          icon.className = "w-3 h-3 text-muted-foreground";
+          iconSpan.appendChild(icon);
+
+          const titleSpan = document.createElement("span");
+          titleSpan.className = "tree-item-title";
+          titleSpan.textContent = node.title || (node.type === "folder" ? "폴더" : "문서");
+
+          prefix.appendChild(iconSpan);
+          prefix.appendChild(titleSpan);
+
+          const actions = document.createElement("div");
+          actions.className = "tree-actions";
+
+          if (node.type === "folder") {
+            const btnAddSubFile = document.createElement("button");
+            btnAddSubFile.type = "button";
+            btnAddSubFile.dataset.action = "add-file";
+            btnAddSubFile.dataset.id = node.id;
+            btnAddSubFile.title = "이 폴더에 문서 추가";
+            btnAddSubFile.innerHTML =
+              '<i data-lucide="file-plus-2" class="w-3 h-3"></i>';
+
+            const btnAddSubFolder = document.createElement("button");
+            btnAddSubFolder.type = "button";
+            btnAddSubFolder.dataset.action = "add-folder";
+            btnAddSubFolder.dataset.id = node.id;
+            btnAddSubFolder.title = "하위 폴더 추가";
+            btnAddSubFolder.innerHTML =
+              '<i data-lucide="folder-plus" class="w-3 h-3"></i>';
+
+            actions.appendChild(btnAddSubFile);
+            actions.appendChild(btnAddSubFolder);
+          }
+
+          const btnDelete = document.createElement("button");
+          btnDelete.type = "button";
+          btnDelete.dataset.action = "delete";
+          btnDelete.dataset.id = node.id;
+          btnDelete.title = node.type === "folder" ? "폴더 삭제" : "문서 삭제";
+          btnDelete.innerHTML = '<i data-lucide="trash-2" class="w-3 h-3"></i>';
+          actions.appendChild(btnDelete);
+
+          row.addEventListener("click", (e) => {
+            if (e.target.closest("button[data-action]")) return;
+            projectState.selectedId = node.id;
+            renderProjectTree();
+            if (node.type === "file") {
+              openDocForNode(node);
+            }
+          });
+
+          row.appendChild(prefix);
+          row.appendChild(actions);
+
+          li.appendChild(row);
+
+          if (node.type === "folder" && Array.isArray(node.children) && node.children.length) {
+            const ul = document.createElement("ul");
+            ul.className = "mt-0.5 space-y-0.5";
+            node.children.forEach((child) => {
+              ul.appendChild(createNodeElement(child, depth + 1));
+            });
+            li.appendChild(ul);
+          }
+
+          li.draggable = true;
+          return li;
+        }
+
+        projectTree.forEach((node) => {
+          treeEl.appendChild(createNodeElement(node, 0));
+        });
+
+        updateEditorEmptyState(treeHasFile());
+
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      // ───────────────── 트리 입력 바 ─────────────────
+      function openInputBar(kind, parentId) {
+        projectState.addType = kind;
+        projectState.addParentId = parentId || null;
+        projectInputBar.classList.remove("hidden");
+        projectInput.value = "";
+        projectInput.placeholder =
+          kind === "folder" ? "새 폴더 이름" : "새 문서 제목";
+        projectInput.focus();
+      }
+
+      projectInputForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        if (!projectState.addType) {
+          projectInputBar.classList.add("hidden");
+          return;
+        }
+        let name = projectInput.value.trim();
+        if (!name) name = projectState.addType === "folder" ? "새 폴더" : "새 문서";
+
+        const newId = genId("doc");
+        const newNode =
+          projectState.addType === "folder"
+            ? { id: newId, type: "folder", title: name, children: [] }
+            : { id: newId, type: "file", title: name };
+
+        if (projectState.addParentId) {
+          const parent = findNode(projectState.addParentId, projectTree);
+          if (parent && parent.type === "folder") {
+            if (!Array.isArray(parent.children)) parent.children = [];
+            parent.children.push(newNode);
+          } else {
+            projectTree.push(newNode);
+          }
+        } else {
+          projectTree.push(newNode);
+        }
+
+        projectState.selectedId = newNode.id;
+        persistTree();
+        renderProjectTree();
+
+        if (newNode.type === "file") {
+          updateEditorEmptyState(true);
+          openDocForNode(newNode);
+        }
+
+        projectState.addType = null;
+        projectState.addParentId = null;
+        projectInputBar.classList.add("hidden");
+      });
+
+      projectInputCancel.addEventListener("click", () => {
+        projectState.addType = null;
+        projectState.addParentId = null;
+        projectInputBar.classList.add("hidden");
+      });
+
+      btnAddRootFolder.addEventListener("click", () => openInputBar("folder", null));
+      btnAddRootFile.addEventListener("click", () => openInputBar("file", null));
+      if (createFirstDocBtn) {
+        createFirstDocBtn.addEventListener("click", () => openInputBar("file", null));
+      }
+
+      // 트리 액션 (add-file / add-folder / delete)
+      treeEl.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-action]");
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (!id) return;
+
+        if (action === "add-file") {
+          openInputBar("file", id);
+        } else if (action === "add-folder") {
+          openInputBar("folder", id);
+        } else if (action === "delete") {
+          handleDeleteNode(id);
+        }
+      });
+
+      function handleDeleteNode(id) {
+        const res = findNodeAndParent(id, projectTree);
+        if (!res) return;
+        const { node } = res;
+        if (
+          node.type === "folder" &&
+          node.children &&
+          node.children.length &&
+          !confirm("이 폴더와 안의 모든 문서를 삭제할까요?")
+        ) {
+          return;
+        }
+        if (node.type === "file") {
+          if (!confirm("이 문서를 삭제할까요? (복구할 수 없습니다)")) return;
+        }
+        detachNode(id);
+        persistTree();
+
+        if (node.type === "file" && currentUser) {
+          db.collection("users")
+            .doc(currentUser.uid)
+            .collection("docs")
+            .doc(node.id)
+            .delete()
+            .catch((e) => console.error("문서 삭제 오류:", e));
+        }
+
+        const hasFile = treeHasFile();
+        if (!hasFile) {
+          projectState.selectedId = null;
+          pagesContainer.innerHTML = "";
+          updateEditorEmptyState(false);
+        } else {
+          const firstFile = getFirstFileNode();
+          if (firstFile) {
+            projectState.selectedId = firstFile.id;
+            renderProjectTree();
+            openDocForNode(firstFile);
+          } else {
+            renderProjectTree();
+          }
+        }
+      }
+
+      // ───────────────── 트리 드래그 앤 드롭 ─────────────────
+      treeEl.addEventListener("dragstart", (e) => {
+        const li = e.target.closest("li[data-id]");
+        if (!li) return;
+        dragNodeId = li.dataset.id;
+        e.dataTransfer.effectAllowed = "move";
+      });
+
+      treeEl.addEventListener("dragover", (e) => {
+        const li = e.target.closest("li[data-id]");
+        if (!li) return;
+        e.preventDefault();
+        li.classList.add("tree-drop-target");
+      });
+
+      treeEl.addEventListener("dragleave", (e) => {
+        const li = e.target.closest("li[data-id]");
+        if (!li) return;
+        li.classList.remove("tree-drop-target");
+      });
+
+      treeEl.addEventListener("drop", (e) => {
+        const li = e.target.closest("li[data-id]");
+        if (!li) return;
+        e.preventDefault();
+        li.classList.remove("tree-drop-target");
+        const targetId = li.dataset.id;
+        if (!dragNodeId || dragNodeId === targetId) {
+          dragNodeId = null;
+          return;
+        }
+        const moved = detachNode(dragNodeId);
+        dragNodeId = null;
+        if (!moved) return;
+
+        const targetNode = findNode(targetId, projectTree);
+        if (!targetNode) return;
+
+        if (targetNode.type === "folder") {
+          insertNodeAsChild(targetNode, moved);
+        } else {
+          insertNodeAfterSibling(targetNode.id, moved);
+        }
+        persistTree();
+        renderProjectTree();
+      });
+
+      treeEl.addEventListener("dragend", () => {
+        dragNodeId = null;
+      });
+
+      // ───────────────── 에디터 관련 ─────────────────
+      function getActiveEditor() {
+        return pagesContainer.querySelector(".page-body");
+      }
+
+      // 붙여넣기 처리
+      function handleEditorPaste(e) {
+        const editor = e.currentTarget;
+        if (!editor || !editor.classList.contains("page-body")) return;
+
+        const clipboard = e.clipboardData || window.clipboardData;
+        if (!clipboard) return;
+
+        e.preventDefault();
+
+        let html = clipboard.getData("text/html");
+        const text = clipboard.getData("text/plain");
+
+        if (html) {
+          try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            if (doc && doc.body) {
+              html = doc.body.innerHTML;
+            }
+          } catch (err) {
+            console.warn("클립보드 HTML 파싱 오류:", err);
+          }
+
+          try {
+            document.execCommand("insertHTML", false, html);
+          } catch (err) {
+            console.warn("insertHTML 실행 오류:", err);
+            editor.innerHTML += html;
+          }
+        } else if (text) {
+          const escaped = text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+          const htmlFromText = escaped.replace(/\r?\n/g, "<br>");
+          try {
+            document.execCommand("insertHTML", false, htmlFromText);
+          } catch (err) {
+            console.warn("텍스트 insertHTML 실행 오류:", err);
+            editor.innerHTML += htmlFromText;
+          }
+        }
+
+        markDirty();
+      }
+
+      function renderPages(pages) {
+        pagesContainer.innerHTML = "";
+        const usePages =
+          Array.isArray(pages) && pages.length
+            ? pages
+            : [{ id: genId("page"), html: "" }];
+
+        usePages.forEach((page, index) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "a4-wrapper";
+
+          const pageEl = document.createElement("div");
+          pageEl.className = "a4-page";
+
+          const header = document.createElement("div");
+          header.className = "a4-page-header";
+          header.textContent = `페이지 ${index + 1}`;
+
+          const body = document.createElement("div");
+          body.className = "page-body";
+          body.contentEditable = "true";
+          body.dataset.pageId = page.id || genId("page");
+          body.innerHTML = page.html || "";
+
+          body.addEventListener("input", () => {
+            markDirty();
+          });
+
+          body.addEventListener("dragover", (e) => {
+            if (
+              e.dataTransfer &&
+              (Array.from(e.dataTransfer.types).includes("application/json") ||
+                Array.from(e.dataTransfer.types).includes("text/plain"))
+            ) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
+            }
+          });
+
+          body.addEventListener("drop", (e) => {
+            if (!e.dataTransfer) return;
+            const types = Array.from(e.dataTransfer.types);
+            const hasJson = types.includes("application/json");
+            const hasText = types.includes("text/plain");
+            if (!hasJson && !hasText) return;
+
+            e.preventDefault();
+            body.focus();
+
+            let memoData = null;
+            if (hasJson) {
+              try {
+                memoData = JSON.parse(
+                  e.dataTransfer.getData("application/json")
+                );
+              } catch (err) {
+                memoData = null;
+              }
+            }
+            const plainText = hasText
+              ? e.dataTransfer.getData("text/plain")
+              : "";
+
+            const selection = window.getSelection();
+            let range;
+            if (selection && selection.rangeCount > 0) {
+              range = selection.getRangeAt(0);
+              if (!body.contains(range.commonAncestorContainer)) {
+                range = document.createRange();
+                range.selectNodeContents(body);
+                range.collapse(false);
+              }
+            } else {
+              range = document.createRange();
+              range.selectNodeContents(body);
+              range.collapse(false);
+            }
+
+            const quote = document.createElement("blockquote");
+            const p1 = document.createElement("p");
+            p1.textContent =
+              (memoData && memoData.text) || plainText || "인박스 메모";
+
+            const meta = document.createElement("p");
+            meta.className = "memo-citation";
+            let metaText = "📎 인박스 메모";
+            if (memoData) {
+              const dt = memoData.createdAt ? new Date(memoData.createdAt) : null;
+              const dateStr = dt ? dt.toLocaleString() : "";
+              const typeStr = memoData.type
+                ? memoData.type.toUpperCase()
+                : "MEMO";
+              metaText +=
+                " · " +
+                typeStr +
+                (dateStr ? " · " + dateStr : "") +
+                (memoData.url ? " · " + memoData.url : "");
+            }
+            meta.textContent = metaText;
+
+            quote.appendChild(p1);
+            quote.appendChild(meta);
+
+            range.insertNode(quote);
+
+            const spacer = document.createElement("p");
+            spacer.innerHTML = "<br />";
+            if (quote.nextSibling) {
+              quote.parentNode.insertBefore(spacer, quote.nextSibling);
+            } else {
+              quote.parentNode.appendChild(spacer);
+            }
+
+            markDirty();
+          });
+
+          body.addEventListener("paste", handleEditorPaste);
+
+          pageEl.appendChild(header);
+          pageEl.appendChild(body);
+          wrapper.appendChild(pageEl);
+          pagesContainer.appendChild(wrapper);
+        });
+
+        pagesMetaEl.textContent = `페이지 ${usePages.length}`;
+      }
+
+      function collectPagesFromDOM() {
+        const bodies = pagesContainer.querySelectorAll(".page-body");
+        const pages = [];
+        bodies.forEach((body) => {
+          pages.push({
+            id: body.dataset.pageId || genId("page"),
+            html: body.innerHTML,
+          });
+        });
+        return pages;
+      }
+
+      function setSaveStatus(text) {
+        if (!saveStatusEl) return;
+        saveStatusEl.textContent = text;
+      }
+
+      function markDirty() {
+        if (editorState.isSaving) return;
+        setSaveStatus("변경 사항 저장 대기 중…");
+        if (editorState.saveTimer) clearTimeout(editorState.saveTimer);
+        editorState.saveTimer = setTimeout(() => {
+          saveCurrentDoc();
+        }, 1000);
+      }
+
+      async function saveCurrentDoc() {
+        if (!currentUser) return;
+        if (!editorState.currentDocId) return;
+
+        if (editorState.saveTimer) {
+          clearTimeout(editorState.saveTimer);
+          editorState.saveTimer = null;
+        }
+
+        const rawTitle = docTitleInput ? docTitleInput.value.trim() : "";
+        const title =
+          rawTitle ||
+          (editorTitleLabel && editorTitleLabel.textContent
+            ? editorTitleLabel.textContent.trim()
+            : "Untitled Document");
+
+        const tagsRaw = docTagsInput ? docTagsInput.value : "";
+        const tags = tagsRaw
+          ? Array.from(
+              new Set(
+                tagsRaw
+                  .split(/[,#\s]+/)
+                  .map((t) => t.trim())
+                  .filter(Boolean)
+              )
+            ).slice(0, 12)
+          : [];
+
+        const pages = collectPagesFromDOM();
+        const now = Date.now();
+
+        editorState.isSaving = true;
+        setSaveStatus("저장 중…");
+
+        try {
+          const docRef = db
+            .collection("users")
+            .doc(currentUser.uid)
+            .collection("docs")
+            .doc(editorState.currentDocId);
+
+          await docRef.set(
+            {
+              title,
+              tags,
+              pages,
+              updatedAt: now,
+              createdAt: editorState.createdAt || now,
+            },
+            { merge: true }
+          );
+
+          editorState.lastSaved = now;
+          editorState.createdAt = editorState.createdAt || now;
+
+          if (docMetaCreated) {
+            docMetaCreated.textContent = formatDateTime(editorState.createdAt);
+          }
+          if (docMetaUpdated) {
+            docMetaUpdated.textContent = formatDateTime(now);
+          }
+
+          const node = findNode(editorState.currentDocId, projectTree);
+          if (node) {
+            node.title = title;
+            persistTree();
+            renderProjectTree();
+          }
+
+          setSaveStatus("모든 변경 사항이 저장되었습니다.");
+        } catch (e) {
+          console.error("문서 저장 오류:", e);
+          setSaveStatus("저장 중 오류가 발생했습니다.");
+        } finally {
+          editorState.isSaving = false;
+        }
+      }
+
+      // 툴바 → execCommand
+      function applyInlineCommand(cmd, value = null) {
+        const editor = getActiveEditor();
+        if (!editor) return;
+        editor.focus();
+        try {
+          document.execCommand(cmd, false, value);
+        } catch (e) {
+          console.warn("execCommand 오류:", cmd, e);
+        }
+        markDirty();
+      }
+
+      btnBold.addEventListener("click", () => applyInlineCommand("bold"));
+      btnItalic.addEventListener("click", () => applyInlineCommand("italic"));
+      btnH2.addEventListener("click", () => {
+        const editor = getActiveEditor();
+        if (!editor) return;
+        editor.focus();
+        document.execCommand("formatBlock", false, "h2");
+        markDirty();
+      });
+      btnBullet.addEventListener("click", () =>
+        applyInlineCommand("insertUnorderedList")
+      );
+      btnSaveNow.addEventListener("click", () => saveCurrentDoc());
+
+      if (docTitleInput) {
+        docTitleInput.addEventListener("input", () => {
+          const node = findNode(projectState.selectedId, projectTree);
+          if (node) {
+            node.title = docTitleInput.value.trim() || "Untitled Document";
+            persistTree();
+            renderProjectTree();
+          }
+          if (editorTitleLabel) {
+            editorTitleLabel.textContent =
+              docTitleInput.value.trim() || "Untitled Document";
+          }
+          markDirty();
+        });
+      }
+
+      if (docTagsInput) {
+        docTagsInput.addEventListener("input", () => {
+          markDirty();
+        });
+      }
+
+      // Ctrl/Cmd + S
+      window.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+          e.preventDefault();
+          saveCurrentDoc();
+        }
+      });
+
+      // ───────────────── Firestore 문서 열기 ─────────────────
+      async function openDocForNode(node) {
+        if (!currentUser || node.type !== "file") return;
+        editorState.currentDocId = node.id;
+        setSaveStatus("문서 불러오는 중…");
+
+        const docRef = db
+          .collection("users")
+          .doc(currentUser.uid)
+          .collection("docs")
+          .doc(node.id);
+
+        try {
+          const snap = await docRef.get();
+          let data;
+          const now = Date.now();
+
+          if (snap.exists) {
+            data = snap.data();
+          } else {
+            data = {
+              title: node.title || "Untitled Document",
+              tags: [],
+              pages: [{ id: genId("page"), html: "" }],
+              createdAt: now,
+              updatedAt: now,
+            };
+            await docRef.set(data);
+          }
+
+          const title =
+            (data.title || node.title || "Untitled Document").trim() ||
+            "Untitled Document";
+          const tags = Array.isArray(data.tags) ? data.tags : [];
+          const pages = Array.isArray(data.pages) ? data.pages : [];
+
+          editorState.createdAt = data.createdAt || now;
+          editorState.lastSaved = data.updatedAt || data.createdAt || now;
+
+          if (editorTitleLabel) editorTitleLabel.textContent = title;
+          if (docTitleInput) docTitleInput.value = title;
+          if (docTagsInput) docTagsInput.value = tags.join(", ");
+          if (docMetaCreated) {
+            docMetaCreated.textContent = formatDateTime(editorState.createdAt);
+          }
+          if (docMetaUpdated) {
+            docMetaUpdated.textContent = formatDateTime(editorState.lastSaved);
+          }
+
+          updateEditorEmptyState(true);
+          renderPages(pages);
+          setSaveStatus("모든 변경 사항이 저장되었습니다.");
+        } catch (e) {
+          console.error("문서 로드 오류:", e);
+          setSaveStatus("문서를 불러오는 중 오류가 발생했습니다.");
+        }
+      }
+
+      // ───────────────── 우측 패널: 메모 / AI / 연결 ─────────────────
+      const connectionData = [
+        { id: "c1", title: "시장 조사 노트", type: "note" },
+        { id: "c2", title: "고객 페르소나 프로젝트", type: "project" },
+      ];
+
+      let editorMemosCache = [];
+      let aiIsLoading = false;
+      let relevanceIsLoading = false;
+
+      // ───────────────── 온톨로지 + 로컬 연관율 유틸 ─────────────────
+      let ONTOLOGY_RAW = null;
+      let ONTOLOGY_TAG_FAMILIES = [];
+      let ONTOLOGY_ROLES = [];
+      let ONTOLOGY_FLOW_STAGES = [];
+      let ONTOLOGY_CONCEPTS = {};
+
+      async function loadOntology() {
+        try {
+          if (window.location.protocol === "file:") {
+            console.warn(
+              "file:// 환경에서는 ontology.json을 fetch할 수 없습니다. 온톨로지 없이 로컬 연관율만 사용합니다."
+            );
+            return;
+          }
+          const res = await fetch("ontology.json", { cache: "no-cache" });
+          if (!res.ok) {
+            console.warn("ontology.json 로드 실패:", res.status);
+            return;
+          }
+          const data = await res.json();
+          if (!data || typeof data !== "object") return;
+
+          ONTOLOGY_RAW = data;
+          ONTOLOGY_TAG_FAMILIES = Array.isArray(data.tagFamilies)
+            ? data.tagFamilies
+            : [];
+          ONTOLOGY_ROLES = Array.isArray(data.roles) ? data.roles : [];
+          ONTOLOGY_FLOW_STAGES = Array.isArray(data.flowStages)
+            ? data.flowStages
+            : [];
+
+          // tagFamilies → 평탄화해서 concept 맵으로 정리 (Home과 동일 패턴)
+          const concepts = {};
+          ONTOLOGY_TAG_FAMILIES.forEach((family) => {
+            if (!family || !family.id) return;
+            const keywords = [];
+            if (Array.isArray(family.keywords)) {
+              family.keywords.forEach((kw) => {
+                if (kw) keywords.push(String(kw));
+              });
+            }
+            if (Array.isArray(family.canonicalTags)) {
+              family.canonicalTags.forEach((kw) => {
+                if (kw) keywords.push(String(kw));
+              });
+            }
+            if (!keywords.length) return;
+            concepts[family.id] = {
+              label: family.label || family.id,
+              keywords,
+            };
+          });
+          ONTOLOGY_CONCEPTS = concepts;
+        } catch (err) {
+          console.error("ontology.json 로드 오류:", err);
+        }
+      }
+
+      function extractConceptsFromText(text) {
+        if (!text) return [];
+        const lowered = String(text).toLowerCase();
+        const source = ONTOLOGY_CONCEPTS || {};
+        const concepts = [];
+        for (const [concept, value] of Object.entries(source)) {
+          const keywords = Array.isArray(value)
+            ? value
+            : Array.isArray(value.keywords)
+            ? value.keywords
+            : [];
+          if (!keywords.length) continue;
+          const matched = keywords.some((kw) =>
+            lowered.includes(String(kw).toLowerCase())
+          );
+          if (matched) concepts.push(concept);
+        }
+        return Array.from(new Set(concepts));
+      }
+
+      function computeLocalRelevance(documentText, memos) {
+        const docText = (documentText || "").toLowerCase();
+        const docConcepts = extractConceptsFromText(docText);
+        const docTokens = docText
+          .replace(/[^0-9a-zA-Z가-힣\s]/g, " ")
+          .split(/\s+/)
+          .filter(Boolean);
+        const docTokenSet = new Set(docTokens);
+
+        return memos
+          .map((m) => {
+            const memoText = ((m.text || "") + " " + (m.url || "")).toLowerCase();
+            const memoConcepts = extractConceptsFromText(memoText);
+            const memoTokens = memoText
+              .replace(/[^0-9a-zA-Z가-힣\s]/g, " ")
+              .split(/\s+/)
+              .filter(Boolean);
+
+            let overlapCount = 0;
+            memoTokens.forEach((t) => {
+              if (docTokenSet.has(t)) overlapCount++;
+            });
+
+            const tagOverlap =
+              Array.isArray(m.tags) && m.tags.length
+                ? m.tags.filter((t) =>
+                    docText.includes(String(t).toLowerCase())
+                  )
+                : [];
+
+            const conceptOverlap = docConcepts.filter((c) =>
+              memoConcepts.includes(c)
+            );
+
+            let score = 0;
+            if (overlapCount && docTokens.length) {
+              score += overlapCount / docTokens.length;
+            }
+            score += tagOverlap.length * 0.4;
+            score += conceptOverlap.length * 0.6;
+            if (m.type === "note") score += 0.05;
+            if (m.type === "memo") score += 0.03;
+
+            return {
+              memo: m,
+              score,
+              tagOverlap,
+              conceptOverlap,
+            };
+          })
+          .sort((a, b) => b.score - a.score);
+      }
+
+      function renderEditorMemos() {
+        const container = document.getElementById("editor-memo-list");
+        if (!container) return;
+
+        const memos = editorMemosCache
+          .slice()
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+        if (!memos.length) {
+          container.innerHTML =
+            '<p class="text-xs text-muted-foreground">Firebase에서 불러온 인박스 메모가 없습니다.</p>';
+          return;
+        }
+
+        container.innerHTML = memos
+          .map((memo) => {
+            const tags = memo.tags || [];
+            const typeLabel = memo.type ? memo.type.toUpperCase() : "MEMO";
+            const createdAtLabel = memo.createdAt
+              ? new Date(memo.createdAt).toLocaleString()
+              : "";
+            return `
+              <article
+                class="memo-card rounded-md border border-border/70 bg-muted/30 px-3 py-2 cursor-grab active:cursor-grabbing text-xs"
+                data-memo-id="${memo.id}"
+                draggable="true"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-[11px] text-muted-foreground">
+                    ${typeLabel}
+                    ${
+                      createdAtLabel
+                        ? ` · <span>${createdAtLabel}</span>`
+                        : ""
+                    }
+                  </p>
+                  ${
+                    memo.url
+                      ? `<i data-lucide="link-2" class="h-3 w-3 text-muted-foreground flex-shrink-0"></i>`
+                      : ""
+                  }
+                </div>
+                <p class="mt-1 text-xs line-clamp-2">
+                  ${memo.text || memo.url || ""}
+                </p>
+                ${
+                  memo.url
+                    ? `<a href="${memo.url}" target="_blank" class="mt-1 inline-flex items-center gap-1 text-[11px] text-primary hover:underline">
+                        <i data-lucide="external-link" class="h-3 w-3"></i>
+                        링크 열기
+                      </a>`
+                    : ""
+                }
+                ${
+                  tags.length
+                    ? `<div class="mt-1 flex flex-wrap gap-1">
+                        ${tags
+                          .map(
+                            (t) =>
+                              `<span class="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-secondary-foreground">${t}</span>`
+                          )
+                          .join("")}
+                      </div>`
+                    : ""
+                }
+              </article>
+            `;
+          })
+          .join("");
+
+        container.querySelectorAll("[data-memo-id]").forEach((el) => {
+          const id = el.getAttribute("data-memo-id");
+          const memo = memos.find((m) => String(m.id) === String(id));
+          if (!memo) return;
+
+          el.addEventListener("dragstart", (e) => {
+            e.dataTransfer.effectAllowed = "copy";
+            const textForDrop = memo.text || memo.url || "";
+            e.dataTransfer.setData("text/plain", textForDrop);
+            e.dataTransfer.setData("application/json", JSON.stringify(memo));
+          });
+        });
+
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function renderMemoPane() {
+        const memoTab = document.getElementById("memo-tab");
+        if (!memoTab) return;
+
+        memoTab.innerHTML = `
+          <div class="p-4 border-b border-border">
+            <h3 class="font-semibold text-foreground flex items-center gap-2 mb-1">
+              <i data-lucide="sticky-note" class="h-[18px] w-[18px] text-accent"></i>
+              인박스 메모
+            </h3>
+          </div>
+          <div class="h-[calc(100%-90px)] overflow-y-auto">
+            <div class="p-3 space-y-2" id="editor-memo-list"></div>
+          </div>
+        `;
+
+        renderEditorMemos();
+      }
+
+      const MEMO_SUBSCRIBE_LIMIT = 100;
+
+      function subscribeEditorMemos(user) {
+        if (!user) {
+          editorMemosCache = [];
+          renderEditorMemos();
+          return;
+        }
+
+        db.collection("users")
+          .doc(user.uid)
+          .collection("memos")
+          .orderBy("createdAt", "desc")
+          .limit(MEMO_SUBSCRIBE_LIMIT)
+          .onSnapshot(
+            (snapshot) => {
+              editorMemosCache = snapshot.docs.map((doc) => {
+                const data = doc.data() || {};
+                const raw = data.createdAt;
+                let createdAt = null;
+                if (raw && typeof raw.toMillis === "function") {
+                  createdAt = raw.toMillis();
+                } else if (typeof raw === "number") {
+                  createdAt = raw;
+                }
+
+                return {
+                  id: doc.id,
+                  text: data.text || "",
+                  url: data.url || "",
+                  tags: data.tags || [],
+                  type: data.type || "memo",
+                  createdAt,
+                };
+              });
+              renderEditorMemos();
+            },
+            (err) => {
+              console.error("에디터 메모 구독 오류:", err);
+            }
+          );
+      }
+
+      function renderAiTab() {
+        const ai = document.getElementById("ai-tab");
+        if (!ai) return;
+        ai.innerHTML = `
+          <div class="flex flex-col h-full">
+            <div class="mb-3 space-y-1">
+              <p class="text-sm font-medium text-foreground">AI 어시스턴트</p>
+            </div>
+            <div
+              id="ai-chat-log"
+              class="flex-1 min-h-[160px] rounded-lg border border-border bg-muted/40 p-3 overflow-y-auto space-y-3 text-xs"
+            >
+              <div class="text-[11px] text-muted-foreground">
+                💬 질문을 입력하면 관련된 메모/문서 조각들을 찾아서, 그 안에서만 답변해 줍니다.
+              </div>
+            </div>
+            <form id="ai-chat-form" class="mt-3 flex flex-col gap-2">
+              <textarea
+                id="ai-question"
+                rows="2"
+                class="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40"
+                placeholder="무엇을 도와드릴까요? (예: '지난주 시장 조사 메모 정리해줘')"
+              ></textarea>
+              <div class="flex items-center justify-between gap-2">
+                <p id="ai-helper-text" class="text-[11px] text-muted-foreground">
+                  ↩ 줄바꿈, <kbd class="px-1 py-0.5 border rounded">Ctrl</kbd> + <kbd class="px-1 py-0.5 border rounded">Enter</kbd> 로 전송
+                </p>
+                <button
+                  type="submit"
+                  id="ai-send-btn"
+                  class="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <span class="ai-send-label">질문 보내기</span>
+                  <i data-lucide="send" class="w-3 h-3"></i>
+                </button>
+              </div>
+            </form>
+          </div>
+        `;
+      }
+
+      function renderLinkTab() {
+        const link = document.getElementById("link-tab");
+        if (!link) return;
+
+        link.innerHTML = `
+          <div class="space-y-2">
+            <p class="text-sm font-medium text-foreground">연결 및 연관율</p>
+            <p class="text-xs text-muted-foreground">
+              현재 열려 있는 문서와 인박스 메모들을 기준으로 ChatGPT API로 계산한 연관율입니다.
+            </p>
+          </div>
+          <div class="mt-3 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              id="relevance-refresh-btn"
+              class="inline-flex items-center gap-1 rounded-full border border-border bg-background px-3 py-1.5 text-[11px] font-medium text-foreground shadow-sm hover:bg-accent/40 transition-colors"
+            >
+              <i data-lucide="sparkles" class="h-3.5 w-3.5"></i>
+              연관율 다시 계산
+            </button>
+            <p id="relevance-status" class="text-[11px] text-muted-foreground"></p>
+          </div>
+          <div id="relevance-list" class="mt-3 space-y-2 text-xs"></div>
+        `;
+
+        const btn = document.getElementById("relevance-refresh-btn");
+        if (btn) {
+          btn.addEventListener("click", () => {
+            computeAndRenderRelevance();
+          });
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      function setRelevanceStatus(text) {
+        const el = document.getElementById("relevance-status");
+        if (!el) return;
+        el.textContent = text;
+      }
+
+      function setRelevanceLoading(loading) {
+        relevanceIsLoading = loading;
+        const btn = document.getElementById("relevance-refresh-btn");
+        if (btn) {
+          btn.disabled = loading;
+        }
+        if (loading) {
+          setRelevanceStatus("연관율 계산 중…");
+        }
+      }
+
+      function renderRelevanceResults(items) {
+        const list = document.getElementById("relevance-list");
+        if (!list) return;
+
+        if (!items || !items.length) {
+          list.innerHTML =
+            '<p class="text-xs text-muted-foreground">연관된 항목을 찾지 못했습니다.</p>';
+          return;
+        }
+
+        list.innerHTML = items
+          .map((item) => {
+            const title = item.title || "제목 없음";
+            const score = typeof item.score === "number" ? item.score : item.relevance;
+            let percent = 0;
+            if (typeof score === "number") {
+              if (score <= 1) {
+                percent = Math.round(score * 100);
+              } else {
+                percent = Math.round(score);
+              }
+            }
+            const topSentence =
+              item.topSentence || item.snippet || item.bestSentence || "";
+            const reason = item.reason || item.why || "";
+
+            return `
+              <article class="rounded-lg border border-border bg-muted/30 px-3 py-2">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="text-xs font-semibold text-foreground truncate">
+                    ${title}
+                  </p>
+                  <p class="text-[11px] text-muted-foreground flex-shrink-0">
+                    연관율: <span class="font-semibold">${percent}%</span>
+                  </p>
+                </div>
+                <div class="mt-2">
+                  <p class="text-[11px] font-medium text-muted-foreground mb-0.5">
+                    가장 연관 있는 문장
+                  </p>
+                  <p class="text-xs text-foreground whitespace-pre-wrap">
+                    ${topSentence || "-"}
+                  </p>
+                </div>
+                <div class="mt-2">
+                  <p class="text-[11px] font-medium text-muted-foreground mb-0.5">
+                    why
+                  </p>
+                  <p class="text-xs text-foreground whitespace-pre-wrap">
+                    ${reason || "-"}
+                  </p>
+                </div>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      
+      // ───────────────── Cloud Functions (onCall) 호출 유틸 ─────────────────
+      // Graph와 동일하게 firebase-functions SDK(compat)를 사용하지 않고,
+      // HTTPS callable 엔드포인트를 fetch로 호출합니다.
+            // ───────────────── Cloud Functions (onCall) 호출 유틸 ─────────────────
+      // CORS 이슈를 피하려면, 브라우저에서 Gen2 callable 엔드포인트를 "직접 fetch"로 치지 말고
+      // Firebase Functions SDK의 httpsCallable을 사용해야 합니다. (Home/Graph와 동일 패턴)
+      async function callFirebaseCallable(functionName, payload) {
+        if (__fw_isLocalFile) {
+          throw new Error(
+            "로컬 파일(file://)에서는 Cloud Functions를 호출할 수 없습니다. Firebase Hosting 등 배포된 도메인에서 접속해 주세요."
+          );
+        }
+
+        if (!functions || typeof functions.httpsCallable !== "function") {
+          throw new Error("firebase-functions-compat SDK가 로드되지 않았습니다. head에 firebase-functions-compat.js를 추가하세요.");
+        }
+
+        // Callable: SDK가 인증/형식/에러 응답을 표준화합니다.
+        const callable = functions.httpsCallable(functionName);
+        const resp = await callable(payload);
+
+        // httpsCallable 응답은 { data: ... } 형태
+        return resp && typeof resp === "object" && "data" in resp ? resp.data : resp;
+      }
+
+async function computeAndRenderRelevance() {
+        if (relevanceIsLoading) return;
+
+        const list = document.getElementById("relevance-list");
+        if (!list) return;
+
+        if (__fw_isLocalFile) {
+          setRelevanceStatus(
+            "로컬 파일(file://)에서는 연관율 계산을 실행할 수 없습니다. Firebase Hosting 등 배포된 도메인에서 확인해 주세요."
+          );
+          list.innerHTML =
+            '<p class="text-xs text-muted-foreground">로컬 파일(file://)에서는 연관율 계산을 실행할 수 없습니다. Firebase Hosting 등 배포된 도메인에서 접속해 주세요.</p>';
+          return;
+        }
+
+        if (!currentUser) {
+          setRelevanceStatus("로그인 후 연관율을 볼 수 있습니다.");
+          list.innerHTML =
+            '<p class="text-xs text-muted-foreground">로그인이 필요합니다.</p>';
+          return;
+        }
+
+        if (!editorState.currentDocId) {
+          setRelevanceStatus("열려 있는 문서가 없습니다.");
+          list.innerHTML =
+            '<p class="text-xs text-muted-foreground">먼저 문서를 하나 선택해주세요.</p>';
+          return;
+        }
+
+        setRelevanceLoading(true);
+        list.innerHTML = "";
+
+        try {
+
+          const editors = Array.from(
+            document.querySelectorAll(".page-body")
+          );
+          const pages = editors.map((ed, index) => ({
+            index,
+            text: ed.innerText || "",
+          }));
+
+          const fullDocText = pages.map((p) => p.text).join("\n\n");
+
+          const titleText =
+            (docTitleInput && docTitleInput.value.trim()) ||
+            (editorTitleLabel && editorTitleLabel.textContent
+              ? editorTitleLabel.textContent.trim()
+              : "제목 없는 문서");
+
+          const docConcepts = extractConceptsFromText(fullDocText);
+
+          const docCtx = {
+            id: editorState.currentDocId,
+            title: titleText,
+            pages,
+            concepts: docConcepts,
+          };
+
+          const baseMemos = (editorMemosCache || []).map((m) => ({
+            id: m.id,
+            text: m.text || "",
+            url: m.url || "",
+            type: m.type || "memo",
+            createdAt: m.createdAt || null,
+            tags: m.tags || [],
+          }));
+
+          let selectedMemos = baseMemos;
+          let clientRanking = [];
+
+          if (baseMemos.length) {
+            const ranked = computeLocalRelevance(fullDocText, baseMemos);
+            const TOP_N = 12;
+            const nonZero = ranked.filter((r) => r.score > 0);
+            const picked = (nonZero.length ? nonZero : ranked).slice(
+              0,
+              TOP_N
+            );
+            selectedMemos = picked.map((r) => r.memo);
+            clientRanking = picked.map((r) => ({
+              id: r.memo.id,
+              score: r.score,
+              tags: r.tagOverlap,
+              concepts: r.conceptOverlap,
+            }));
+          }
+          const data = (await callFirebaseCallable("computeRelevance", {
+            document: docCtx,
+                        memos: selectedMemos,
+                        clientRanking,
+          })) || {};
+          const items = Array.isArray(data.items)
+            ? data.items
+            : Array.isArray(data.results)
+            ? data.results
+            : [];
+
+          renderRelevanceResults(items);
+
+          if (items.length) {
+            setRelevanceStatus(`총 ${items.length}개의 항목이 연관되어 있습니다.`);
+          } else {
+            setRelevanceStatus("연관된 항목을 찾지 못했습니다.");
+          }
+        } catch (e) {
+          console.error("연관율 계산 오류:", e);
+          if (
+            e &&
+            (e.code === "functions/internal" ||
+              e.code === "internal" ||
+              (typeof e.message === "string" &&
+                e.message.toLowerCase().includes("internal")))
+          ) {
+            setRelevanceStatus("연관율 계산 중 Cloud Functions 내부 오류(CORS 가능성) 발생");
+            list.innerHTML =
+              '<p class="text-xs text-destructive-foreground">연관율 계산 호출 중 Cloud Functions(computeRelevance)에서 CORS 설정 또는 region/함수 타입(onCall/onRequest) 문제로 응답이 막혔습니다.<br/>editor.html 쪽 코드는 이미 <code>httpsCallable("computeRelevance")</code>로 올바르게 호출 중이므로, Firebase Functions 콘솔에서 <strong>computeRelevance 함수의 region과 타입(onCall), 그리고 Access-Control-Allow-Origin 헤더 설정</strong>을 확인·수정해야 합니다.</p>';
+          } else {
+            setRelevanceStatus("연관율 계산 중 오류가 발생했습니다.");
+            list.innerHTML =
+              '<p class="text-xs text-destructive-foreground">연관율 계산 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.</p>';
+          }
+        } finally {
+          setRelevanceLoading(false);
+        }
+      }
+
+      function appendChatMessage(role, content, sources) {
+        const log = document.getElementById("ai-chat-log");
+        if (!log) return;
+        const wrapper = document.createElement("div");
+        wrapper.className =
+          role === "user" ? "flex justify-end" : "flex justify-start";
+
+        const bubble = document.createElement("div");
+        bubble.className =
+          "max-w-[90%] rounded-2xl px-3 py-2 text-[11px] whitespace-pre-wrap break-words " +
+          (role === "user"
+            ? "bg-primary text-primary-foreground"
+            : "bg-card border border-border text-foreground");
+
+        bubble.textContent = content;
+        wrapper.appendChild(bubble);
+
+        if (role === "assistant" && Array.isArray(sources) && sources.length) {
+          const srcBox = document.createElement("div");
+          srcBox.className =
+            "mt-2 pt-1 border-t border-dashed border-border/60 space-y-1";
+
+          const title = document.createElement("p");
+          title.className = "text-[10px] font-semibold text-muted-foreground";
+          title.textContent = "📎 관련 출처";
+          srcBox.appendChild(title);
+
+          sources.forEach((src) => {
+            const line = document.createElement("div");
+            line.className =
+              "flex flex-col gap-0.5 text-[10px] text-muted-foreground";
+
+            const meta = document.createElement("span");
+            meta.textContent =
+              (src.type === "memo" ? "[메모]" : "[문서]") +
+              (src.title ? " " + src.title : "") +
+              (src.page ? ` (p.${src.page})` : "");
+            line.appendChild(meta);
+
+            if (src.snippet) {
+              const snip = document.createElement("span");
+              snip.className = "line-clamp-2";
+              snip.textContent = src.snippet;
+              line.appendChild(snip);
+            }
+
+            srcBox.appendChild(line);
+          });
+
+          bubble.appendChild(srcBox);
+        }
+
+        log.appendChild(wrapper);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      function setAiLoading(loading) {
+        aiIsLoading = loading;
+        const btn = document.getElementById("ai-send-btn");
+        const label = btn ? btn.querySelector(".ai-send-label") : null;
+        if (btn) {
+          btn.disabled = loading;
+        }
+        if (label) {
+          label.textContent = loading ? "생성 중..." : "질문 보내기";
+        }
+      }
+
+      function setupAiChat() {
+        const form = document.getElementById("ai-chat-form");
+        const textarea = document.getElementById("ai-question");
+
+        if (!form || !textarea) return;
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          if (aiIsLoading) return;
+
+          const question = textarea.value.trim();
+          if (!question) return;
+
+          if (__fw_isLocalFile) {
+            appendChatMessage(
+              "assistant",
+              "로컬 파일(file://)에서 열려 있어 Cloud Functions를 호출할 수 없습니다. Firebase Hosting 등 배포된 도메인에서 접속해 주세요."
+            );
+            return;
+          }
+
+          if (!currentUser) {
+            alert("로그인 후 AI 어시스턴트를 사용할 수 있습니다.");
+            return;
+          }
+
+          appendChatMessage("user", question);
+          textarea.value = "";
+          setAiLoading(true);
+
+          try {
+            const editors = Array.from(
+              document.querySelectorAll(".page-body")
+            );
+            const pages = editors.map((ed, index) => ({
+              index,
+              text: ed.innerText || "",
+            }));
+
+            const titleText =
+              (docTitleInput && docTitleInput.value.trim()) ||
+              (editorTitleLabel && editorTitleLabel.textContent
+                ? editorTitleLabel.textContent.trim()
+                : "제목 없는 문서");
+
+            const docCtx = {
+              id: editorState.currentDocId,
+              title: titleText,
+              pages,
+            };
+
+            const payloadMemos = (editorMemosCache || []).map((m) => ({
+              id: m.id,
+              text: m.text || "",
+              url: m.url || "",
+              type: m.type || "memo",
+              createdAt: m.createdAt || null,
+              tags: m.tags || [],
+            }));
+            const data = (await callFirebaseCallable("qaWithContext", {
+              question,
+                            document: docCtx,
+                            memos: payloadMemos,
+            })) || {};
+            const answer =
+              data.answer ||
+              "AI 응답을 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.";
+            const sources = Array.isArray(data.sources) ? data.sources : [];
+
+            appendChatMessage("assistant", answer, sources);
+          } catch (err) {
+            console.error("AI 호출 오류:", err);
+            appendChatMessage(
+              "assistant",
+              "AI 호출 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요."
+            );
+          } finally {
+            setAiLoading(false);
+          }
+        });
+
+        textarea.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            form.dispatchEvent(new Event("submit", { cancelable: true }));
+          }
+        });
+      }
+
+      function setupTabs() {
+        const triggers = document.querySelectorAll(".tab-trigger");
+        const contents = document.querySelectorAll(".tab-content");
+
+        function activate(tab) {
+          triggers.forEach((btn) => {
+            const isActive = btn.dataset.tab === tab;
+            btn.classList.toggle("bg-card", isActive);
+            btn.classList.toggle("shadow-sm", isActive);
+            btn.classList.toggle("text-foreground", isActive);
+            if (!isActive) {
+              btn.classList.add("text-muted-foreground");
+            } else {
+              btn.classList.remove("text-muted-foreground");
+            }
+          });
+
+          contents.forEach((sec) => {
+            sec.style.display =
+              sec.dataset.content === tab ? "block" : "none";
+          });
+
+          if (tab === "memo") {
+            renderEditorMemos();
+          }
+          if (tab === "link") {
+            computeAndRenderRelevance();
+          }
+        }
+
+        triggers.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            activate(btn.dataset.tab);
+            if (window.lucide) window.lucide.createIcons();
+          });
+        });
+
+        activate("ai");
+      }
+
+      // ───────────────── 초기화 ─────────────────
+      async function initForUser() {
+        projectTree = [];
+
+        let remoteTree = await loadTreeFromFirestore(currentUser);
+        projectTree = Array.isArray(remoteTree) ? remoteTree : [];
+
+        renderProjectTree();
+
+        const firstFile = getFirstFileNode();
+        if (firstFile) {
+          projectState.selectedId = firstFile.id;
+          renderProjectTree();
+          openDocForNode(firstFile);
+        } else {
+          updateEditorEmptyState(false);
+        }
+
+        // After loading the initial tree/doc, check if the URL specifies a doc ID to open
+        await handleDraftDocFromQuery();
+      }
+
+      // 우측 패널 준비
+      renderAiTab();
+      renderMemoPane();
+      renderLinkTab();
+      setupTabs();
+      setupAiChat();
+
+      // 온톨로지 로드
+      loadOntology();
+
+      
+      // Auth gate (Graph/Home과 동일한 방식)
+      let __fw_authGateTimer = null;
+
+      auth.onAuthStateChanged(async (user) => {
+        if (!user) {
+          if (__fw_isLocalFile) {
+            if (__fw_authGateTimer) {
+              clearTimeout(__fw_authGateTimer);
+              __fw_authGateTimer = null;
+            }
+            showToast("로컬 파일로 실행 중입니다. Firebase 세션을 사용하려면 Hosting URL에서 열어주세요.");
+            return;
+
+          // 🔸 개발 서버(localhost)에서 열면 프로덕션(web.app) 로그인 세션이 공유되지 않습니다.
+          //    이 경우에는 localhost의 login.html에서 다시 로그인해야 합니다.
+          if (location.hostname === "localhost" || location.hostname === "127.0.0.1") {
+            try { showToast("현재 localhost에서 열려 있어 프로덕션 로그인 세션이 공유되지 않습니다. localhost의 login.html에서 다시 로그인하세요."); } catch (_) {}
+          }
+
+          }
+
+          if (__fw_authGateTimer) clearTimeout(__fw_authGateTimer);
+          __fw_authGateTimer = setTimeout(() => {
+            try {
+              if (!auth.currentUser) {
+                localStorage.removeItem(AUTH_KEY);
+                window.location.replace("login.html");
+              }
+            } catch (_) {
+              window.location.replace("login.html");
+            }
+          }, 3000);
+          return;
+        }
+
+        if (__fw_authGateTimer) {
+          clearTimeout(__fw_authGateTimer);
+          __fw_authGateTimer = null;
+        }
+
+        let onboardingComplete = false;
+        try {
+          const profile = await ensureUserProfile(user);
+          onboardingComplete = !!profile.onboardingComplete;
+        } catch (e) {
+          const cached = readAuthCache();
+          onboardingComplete = !!(cached && cached.uid === user.uid && cached.onboardingComplete);
+          console.warn("Profile load failed; falling back to cache:", e);
+        }
+
+        writeAuthCache(user, onboardingComplete);
+
+        if (!onboardingComplete) {
+          window.location.replace("onboarding.html");
+          return;
+        }
+
+        currentUser = user;
+        try {
+          await initForUser();
+        } catch (e) {
+          console.error("initForUser 오류:", e);
+        }
+        try {
+          subscribeEditorMemos(user);
+        } catch (e) {
+          console.error("subscribeEditorMemos 오류:", e);
+        }
+      });
+// 아이콘 초기 렌더
+      if (window.lucide) window.lucide.createIcons();
+    </script>
+  </body>
+</html>

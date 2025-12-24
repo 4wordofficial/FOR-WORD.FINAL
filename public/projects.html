@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects | FOR:WORD Standalone</title>
+    <meta
+      name="description"
+      content="프로젝트, 목표, 태스크 관리를 위한 Projects 페이지를 단일 HTML로 제공합니다."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* Design tokens from src/index.css */
+        --background: 220 40% 98%;
+        --foreground: 220 30% 20%;
+
+        --card: 0 0% 100%;
+        --card-foreground: 220 30% 20%;
+
+        --popover: 0 0% 100%;
+        --popover-foreground: 220 30% 20%;
+
+        --primary: 90 60% 70%;
+        --primary-foreground: 90 40% 20%;
+
+        --secondary: 320 70% 88%;
+        --secondary-foreground: 320 40% 25%;
+
+        --muted: 220 25% 96%;
+        --muted-foreground: 220 15% 50%;
+
+        --accent: 200 75% 80%;
+        --accent-foreground: 200 40% 25%;
+
+        --destructive: 350 70% 65%;
+        --destructive-foreground: 0 0% 100%;
+
+        --border: 220 20% 90%;
+        --input: 220 20% 90%;
+        --ring: 90 60% 70%;
+
+        --radius: 1rem;
+      }
+
+      *,
+      ::before,
+      ::after {
+        border-color: hsl(var(--border));
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
+      }
+
+      .tag-chip {
+        display: inline-flex;
+        align-items: center;
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        font-weight: 600;
+      }
+
+      .progress-track {
+        height: 8px;
+        border-radius: 9999px;
+        background-color: hsla(var(--muted), 1);
+        overflow: hidden;
+      }
+
+      .progress-bar {
+        height: 100%;
+        background-color: hsl(var(--primary));
+      }
+
+      .small-progress-track {
+        height: 6px;
+        border-radius: 9999px;
+        background-color: hsla(var(--muted), 1);
+        overflow: hidden;
+      }
+
+      .small-progress-bar {
+        height: 100%;
+        background-color: hsl(var(--primary));
+      }
+    </style>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              border: 'hsl(var(--border))',
+              input: 'hsl(var(--input))',
+              ring: 'hsl(var(--ring))',
+              background: 'hsl(var(--background))',
+              foreground: 'hsl(var(--foreground))',
+              primary: {
+                DEFAULT: 'hsl(var(--primary))',
+                foreground: 'hsl(var(--primary-foreground))',
+              },
+              secondary: {
+                DEFAULT: 'hsl(var(--secondary))',
+                foreground: 'hsl(var(--secondary-foreground))',
+              },
+              destructive: {
+                DEFAULT: 'hsl(var(--destructive))',
+                foreground: 'hsl(var(--destructive-foreground))',
+              },
+              muted: {
+                DEFAULT: 'hsl(var(--muted))',
+                foreground: 'hsl(var(--muted-foreground))',
+              },
+              accent: {
+                DEFAULT: 'hsl(var(--accent))',
+                foreground: 'hsl(var(--accent-foreground))',
+              },
+              popover: {
+                DEFAULT: 'hsl(var(--popover))',
+                foreground: 'hsl(var(--popover-foreground))',
+              },
+              card: {
+                DEFAULT: 'hsl(var(--card))',
+                foreground: 'hsl(var(--card-foreground))',
+              },
+            },
+            borderRadius: {
+              lg: 'var(--radius)',
+              md: 'calc(var(--radius) - 2px)',
+              sm: 'calc(var(--radius) - 4px)',
+            },
+          },
+        },
+      };
+    </script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- ✅ Firebase SDK (compat): firebase is not defined 오류 원인 해결 -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  </head>
+
+  <body
+    class="min-h-screen bg-background text-foreground"
+    style="font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"
+  >
+    <!-- ✅ index / outputs와 동일한 네비 구조 -->
+    <nav class="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <div class="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center gap-8">
+            <a
+              href="index.html"
+              class="text-xl font-bold bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent"
+            >
+              FOR:WORD
+            </a>
+            <div class="hidden md:flex gap-1" id="nav-links"></div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <main class="max-w-[1600px] mx-auto px-6 sm:px-8 lg:px-12 py-8">
+      <div class="space-y-8">
+        <header class="space-y-1">
+          <h1 class="text-3xl font-bold text-foreground">Projects</h1>
+          <p class="text-muted-foreground mt-1">
+            프로젝트별 태스크를 관리하고 진행 상황을 추적하세요
+          </p>
+        </header>
+
+        <section id="stat-cards" class="grid grid-cols-1 md:grid-cols-4 gap-4"></section>
+
+        <section id="project-list" class="space-y-6"></section>
+      </div>
+    </main>
+
+    <!-- (UI 영향 최소) 토스트 영역: 필요시만 표시 -->
+    <div id="toast-root" class="fixed top-4 right-4 z-[60] flex flex-col gap-2"></div>
+
+    <script>
+      // ─────────────────────────────────────────────────────────────
+      // 0) Theme + Firebase init
+      // ─────────────────────────────────────────────────────────────
+      const AUTH_KEY = 'forword.auth.v1';
+      const THEME_KEY = 'forword.theme';
+      const __fw_isLocalFile = window.location.protocol === 'file:' || window.location.origin === 'null';
+
+      if (localStorage.getItem(THEME_KEY) === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+
+      const toastRoot = document.getElementById('toast-root');
+      const showToast = (message) => {
+        const el = document.createElement('div');
+        el.className = 'rounded-xl border border-border bg-card px-4 py-3 shadow-lg text-sm font-semibold text-foreground';
+        el.textContent = message;
+        toastRoot.appendChild(el);
+        setTimeout(() => el.remove(), 2400);
+      };
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyC4Xz5BQEt4SYaKqP8qU9ocac__VQbVgD0",
+        authDomain: "forword-7af6f.firebaseapp.com",
+        projectId: "forword-7af6f",
+        storageBucket: "forword-7af6f.firebasestorage.app",
+        messagingSenderId: "828952645956",
+        appId: "1:828952645956:web:8c25750ea52be169650711",
+        measurementId: "G-7VPEYGEZL3",
+      };
+
+      if (typeof firebase === "undefined") {
+        console.error("Firebase SDK not loaded. Check script tags / network.");
+        showToast("Firebase SDK 로드 실패: 네트워크/스크립트 태그를 확인하세요.");
+      } else if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+      }
+
+      const auth = typeof firebase !== "undefined" ? firebase.auth() : null;
+      if (auth) auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+      const db = typeof firebase !== "undefined" ? firebase.firestore() : null;
+
+      function safeJsonParse(raw, fallback = null) {
+        try { return JSON.parse(raw); } catch { return fallback; }
+      }
+      function readAuthCache() {
+        const cached = safeJsonParse(localStorage.getItem(AUTH_KEY) || "null", null);
+        return cached && typeof cached === "object" ? cached : null;
+      }
+      function writeAuthCache(user, onboardingComplete) {
+        if (!user) return;
+        const providerId =
+          (user.providerData && user.providerData[0] && user.providerData[0].providerId) ||
+          (user.isAnonymous ? "anonymous" : "firebase");
+        const provider =
+          providerId === "google.com" ? "google" : providerId === "password" ? "password" : providerId;
+
+        localStorage.setItem(
+          AUTH_KEY,
+          JSON.stringify({
+            uid: user.uid || null,
+            email: user.email || null,
+            displayName: user.displayName || null,
+            provider,
+            onboardingComplete: !!onboardingComplete,
+          })
+        );
+      }
+
+      async function ensureUserProfile(user) {
+        if (!db || !user || !user.uid) return { onboardingComplete: false };
+        const ref = db.collection("users").doc(user.uid);
+
+        const now = firebase.firestore.FieldValue.serverTimestamp();
+        const providerIds = Array.from(
+          new Set((user.providerData || []).map((p) => p && p.providerId).filter(Boolean))
+        );
+
+        const base = {
+          uid: user.uid,
+          email: user.email || null,
+          displayName: user.displayName || null,
+          photoURL: user.photoURL || null,
+          providerIds,
+          lastSeenAt: now,
+        };
+
+        const snap = await ref.get();
+        if (!snap.exists) {
+          await ref.set({ ...base, createdAt: now, onboardingComplete: false }, { merge: true });
+          return { onboardingComplete: false };
+        }
+
+        await ref.set(base, { merge: true });
+        return snap.data() || { onboardingComplete: false };
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // 1) Navigation (기존 UI/UX 유지)
+      // ─────────────────────────────────────────────────────────────
+      const navigation = [
+        { name: 'Dashboard', href: 'index.html', icon: 'layout-dashboard' },
+        { name: 'Graph', href: 'graph.html', icon: 'network' },
+        { name: 'Projects', href: 'projects.html', icon: 'folder-kanban' },
+        { name: 'Editor', href: 'editor.html', icon: 'file-pen' },
+        { name: 'Outputs', href: 'outputs.html', icon: 'file-output' },
+      ];
+
+      const navLinks = document.getElementById('nav-links');
+      const renderNavigation = () => {
+        const activeName = 'Projects';
+
+        navLinks.innerHTML = navigation
+          .map(
+            (item) => `
+            <a
+              href="${item.href}"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                item.name === activeName
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              }"
+            >
+              <i data-lucide="${item.icon}" class="w-4 h-4"></i>
+              ${item.name}
+            </a>
+          `
+          )
+          .join('');
+
+        if (window.lucide) lucide.createIcons();
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // 2) UI Helpers (기존 렌더 유지)
+      // ─────────────────────────────────────────────────────────────
+      const tagColors = {
+        Brand: 'hsl(280, 65%, 70%)',
+        Marketing: 'hsl(45, 70%, 60%)',
+        Systematic: 'hsl(30, 60%, 65%)',
+        Doing: 'hsl(45, 70%, 60%)',
+        Components: 'hsl(140, 60%, 55%)',
+        Research: 'hsl(140, 60%, 55%)',
+        Design: 'hsl(200, 70%, 60%)',
+        Development: 'hsl(260, 60%, 65%)',
+      };
+
+      let currentUser = null;
+
+      // Graph에서 생성한 프로젝트를 그대로 표시할 수 있도록:
+      // - Firestore users/{uid}/projects 문서에 todoTasks/objectives 배열이 있으면 그대로 사용
+      // - 없으면 빈 배열로 처리
+      let projects = [];
+
+      const statsGrid = document.getElementById('stat-cards');
+      const listRoot = document.getElementById('project-list');
+
+      const renderStats = () => {
+        const totalObjectives = projects.reduce((sum, p) => sum + (p.objectives?.length || 0), 0);
+        const activeTasks = projects.reduce(
+          (sum, p) => sum + (p.objectives || []).reduce((s, o) => s + (o.tasks?.length || 0), 0),
+          0
+        );
+
+        const avg = projects.length
+          ? Math.round(
+              projects.reduce(
+                (sum, p) =>
+                  sum +
+                  (p.objectives || []).reduce((s, o) => s + (Number(o.progress) || 0), 0) /
+                    ((p.objectives?.length || 1)),
+                0
+              ) / projects.length
+            )
+          : 0;
+
+        const cards = [
+          { label: '전체 프로젝트', value: projects.length },
+          { label: '전체 Objectives', value: totalObjectives },
+          { label: '진행 중인 태스크', value: activeTasks },
+          { label: '평균 진행률', value: `${avg}%` },
+        ];
+
+        statsGrid.innerHTML = cards
+          .map(
+            (card) => `
+            <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div class="p-4">
+                <p class="text-sm text-muted-foreground">${card.label}</p>
+                <p class="text-2xl font-bold text-foreground">${card.value}</p>
+              </div>
+            </div>
+          `
+          )
+          .join('');
+      };
+
+      const renderTags = (tags) => {
+        const safe = Array.isArray(tags) ? tags : [];
+        return safe
+          .map((tag) => {
+            const color = tagColors[tag] || 'hsl(0, 0%, 80%)';
+            return `<span class="tag-chip" style="background-color:${color}30;color:${color}">${tag}</span>`;
+          })
+          .join('');
+      };
+
+      const renderProgress = (value) => {
+        const v = Math.max(0, Math.min(100, Number(value) || 0));
+        return `
+          <div class="progress-track">
+            <div class="progress-bar" style="width:${v}%"></div>
+          </div>
+        `;
+      };
+
+      const renderObjectiveTask = (task) => {
+        return `
+          <div class="p-3 bg-muted/30 border border-border rounded-lg hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer">
+            <div class="flex items-start justify-between mb-2">
+              <h5 class="font-semibold text-sm text-foreground flex-1">${task.title || '태스크'}</h5>
+              ${
+                task.progress !== undefined
+                  ? `<span class="inline-flex items-center rounded-full bg-secondary/50 text-secondary-foreground px-2.5 py-1 text-xs font-semibold">${Number(task.progress) || 0}%</span>`
+                  : ''
+              }
+            </div>
+            <p class="text-xs text-muted-foreground mb-2">${task.dueDate || ''}</p>
+            <div class="flex flex-wrap gap-1.5 mb-2">${renderTags(task.tags)}</div>
+            ${
+              task.progress !== undefined
+                ? `<div class="small-progress-track"><div class="small-progress-bar" style="width:${Number(task.progress) || 0}%"></div></div>`
+                : ''
+            }
+          </div>
+        `;
+      };
+
+      const renderObjective = (objective) => {
+        const tasks = Array.isArray(objective.tasks) ? objective.tasks : [];
+        const progress = Number(objective.progress) || 0;
+
+        return `
+          <div class="rounded-lg border-2 border-primary/20 bg-card text-card-foreground shadow-sm">
+            <div class="pb-3 px-6 pt-5 bg-gradient-to-r from-primary/5 to-transparent rounded-t-lg">
+              <div class="flex items-start justify-between mb-2">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-1">
+                    <i data-lucide="target" class="h-4 w-4 text-primary"></i>
+                    <p class="text-base font-semibold">${objective.title || 'Objective'}</p>
+                  </div>
+                  <p class="text-xs text-muted-foreground pl-6">${objective.description || ''}</p>
+                </div>
+                <span class="inline-flex items-center rounded-full bg-primary/10 text-primary border border-primary/20 px-3 py-1 text-xs font-semibold">
+                  ${objective.target || ''}
+                </span>
+              </div>
+              <div class="flex items-center gap-2 pl-6">
+                ${renderProgress(progress)}
+                <span class="text-xs font-semibold text-foreground min-w-[45px] text-right">
+                  ${progress}%
+                </span>
+              </div>
+            </div>
+            <div class="px-6 py-4 space-y-2">
+              ${tasks.map(renderObjectiveTask).join('')}
+              <button
+                class="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                data-action="add-task"
+              >
+                <i data-lucide="plus" class="h-4 w-4"></i>
+                태스크 추가
+              </button>
+            </div>
+          </div>
+        `;
+      };
+
+      const renderTodoTask = (task) => {
+        return `
+          <div class="bg-background border border-border rounded-lg p-3 hover:border-primary transition-all cursor-pointer">
+            <h5 class="font-semibold text-sm text-foreground mb-2">${task.title || '태스크'}</h5>
+            <p class="text-xs text-muted-foreground mb-2">${task.dueDate || ''}</p>
+            <div class="flex flex-wrap gap-1.5">${renderTags(task.tags)}</div>
+          </div>
+        `;
+      };
+
+      const renderProjectCard = (project) => {
+        const objectives = Array.isArray(project.objectives) ? project.objectives : [];
+        const todoTasks = Array.isArray(project.todoTasks) ? project.todoTasks : [];
+
+        return `
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm" data-project-id="${project.id}">
+            <div
+              class="flex items-center justify-between cursor-pointer px-6 py-4 project-toggle"
+              data-project-id="${project.id}"
+            >
+              <div class="flex items-center gap-3">
+                ${
+                  project.expanded
+                    ? '<i data-lucide="chevron-down" class="h-5 w-5 text-muted-foreground"></i>'
+                    : '<i data-lucide="chevron-right" class="h-5 w-5 text-muted-foreground"></i>'
+                }
+                <i data-lucide="folder-kanban" class="text-primary h-5 w-5"></i>
+                <div>
+                  <p class="text-xl font-semibold">${project.name || 'Project'}</p>
+                  <p class="text-sm text-muted-foreground mt-1">${project.description || ''}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span
+                  class="inline-flex items-center rounded-full border border-input px-3 py-1 text-sm font-medium"
+                >
+                  ${objectives.length} objectives
+                </span>
+                <button
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-background hover:bg-secondary hover:text-secondary-foreground text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 project-create-draft"
+                  data-project-id="${project.id}"
+                  aria-label="draft"
+                >
+                  <i data-lucide="file-plus" class="h-4 w-4"></i>
+                </button>
+                <button
+                  class="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 project-more"
+                  data-project-id="${project.id}"
+                  aria-label="more"
+                >
+                  <i data-lucide="more-horizontal" class="h-4 w-4"></i>
+                </button>
+              </div>
+            </div>
+
+            ${
+              project.expanded
+                ? `
+              <div class="px-6 pb-6 space-y-8">
+                <div class="p-4 bg-primary/5 border-2 border-primary/20 rounded-xl">
+                  <div class="flex items-center gap-2 mb-2">
+                    <i data-lucide="target" class="h-4 w-4 text-primary"></i>
+                    <h3 class="font-bold text-foreground">프로젝트 목표</h3>
+                  </div>
+                  <p class="text-sm text-muted-foreground pl-6">${project.goal || '—'}</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  <div class="lg:col-span-4">
+                    <div class="rounded-lg border bg-muted/30 text-card-foreground shadow-sm">
+                      <div class="px-6 pt-5 pb-3">
+                        <p class="text-base font-semibold flex items-center gap-2">
+                          <span class="w-2 h-2 rounded-full bg-muted-foreground inline-block"></span>
+                          To Do
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                          일반 태스크 ${todoTasks.length}개
+                        </p>
+                      </div>
+                      <div class="px-6 pb-5 space-y-3">
+                        ${todoTasks.map(renderTodoTask).join('')}
+                        ${
+                          todoTasks.length === 0
+                            ? '<p class="text-xs text-muted-foreground text-center py-4">No tasks</p>'
+                            : ''
+                        }
+                        <button
+                          class="inline-flex w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          data-action="add-todo"
+                        >
+                          <i data-lucide="plus" class="h-4 w-4"></i>
+                          태스크 추가
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="lg:col-span-8 space-y-6">
+                    ${
+                      objectives.length
+                        ? objectives.map(renderObjective).join('')
+                        : `
+                          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+                            <div class="p-6">
+                              <p class="text-sm text-muted-foreground">아직 Objective가 없습니다.</p>
+                            </div>
+                          </div>
+                        `
+                    }
+                  </div>
+                </div>
+              </div>
+            `
+                : ''
+            }
+          </div>
+        `;
+      };
+
+      const renderProjects = () => {
+        if (!projects.length) {
+          listRoot.innerHTML = `
+            <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div class="p-6">
+                <p class="text-sm text-muted-foreground">
+                  아직 프로젝트가 없습니다. Graph에서 대주제를 선택해 프로젝트를 생성해보세요.
+                </p>
+              </div>
+            </div>
+          `;
+          if (window.lucide) lucide.createIcons();
+          return;
+        }
+
+        listRoot.innerHTML = projects.map(renderProjectCard).join('');
+
+        listRoot.querySelectorAll('.project-toggle').forEach((toggle) => {
+          toggle.addEventListener('click', (event) => {
+            const id = toggle.dataset.projectId;
+            toggleProject(id);
+            event.stopPropagation();
+          });
+        });
+
+        listRoot.querySelectorAll('.project-more').forEach((btn) => {
+          btn.addEventListener('click', (event) => {
+            event.stopPropagation();
+          });
+        });
+
+        // Attach draft creation listeners
+        listRoot.querySelectorAll('.project-create-draft').forEach((btn) => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.projectId;
+            await createDraftForProject(id);
+          });
+        });
+
+        // (기능 추가는 아님) 버튼 클릭 시 안내만
+        listRoot.querySelectorAll('[data-action="add-task"], [data-action="add-todo"]').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showToast("태스크 추가 UI는 다음 단계에서 연결됩니다.");
+          });
+        });
+
+        if (window.lucide) lucide.createIcons();
+      };
+
+      const toggleProject = (projectId) => {
+        projects = projects.map((p) =>
+          p.id === projectId ? { ...p, expanded: !p.expanded } : p
+        );
+        renderStats();
+        renderProjects();
+      };
+
+      // ─────────────────────────────────────────────────────────────
+      // Draft generation for projects
+      // ─────────────────────────────────────────────────────────────
+      // Escape HTML special characters
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      /**
+       * Create a draft document for the given project.
+       * It collects up to 10 memos whose mainTopic matches the project's theme (project.source.theme)
+       * or the project name if no explicit theme exists, then composes a single-page draft document.
+       * The new document is stored in the user's "docs" collection and the project document is updated
+       * with a draftDocId.  Finally, it navigates to the editor with the created doc ID.
+       */
+      async function createDraftForProject(projectId) {
+        if (!db || !currentUser || !currentUser.uid) {
+          showToast('로그인 상태에서만 생성할 수 있습니다.');
+          return false;
+        }
+        try {
+          const project = projects.find((p) => p.id === projectId);
+          if (!project) {
+            showToast('프로젝트를 찾을 수 없습니다.');
+            return false;
+          }
+          // Determine theme: prefer project.source.theme if available, else use project name
+          const theme = project.source && project.source.theme ? project.source.theme : (project.name || '');
+          const uid = currentUser.uid;
+          // Fetch memos matching the theme
+          let memosSnap;
+          if (theme) {
+            memosSnap = await db
+              .collection('users')
+              .doc(uid)
+              .collection('memos')
+              .where('mainTopic', '==', theme)
+              .orderBy('createdAt', 'desc')
+              .limit(10)
+              .get();
+          } else {
+            memosSnap = await db
+              .collection('users')
+              .doc(uid)
+              .collection('memos')
+              .orderBy('createdAt', 'desc')
+              .limit(10)
+              .get();
+          }
+          const memos = memosSnap.docs.map((d) => ({
+            id: d.id,
+            text: (d.data()?.text || '').toString(),
+          }));
+          const now = Date.now();
+          const docRef = db.collection('users').doc(uid).collection('docs').doc();
+          const seedMemos = memos.map((m) => m.id);
+          const bodyHtml = memos.map((m) => `<p>${escapeHtml(m.text)}</p>`).join('');
+          const pageId = `${docRef.id}_p1`;
+          await docRef.set({
+            title: `${project.name || theme} 초안`,
+            tags: theme ? [theme] : [],
+            pages: [{ id: pageId, html: bodyHtml }],
+            createdAt: now,
+            updatedAt: now,
+            seedMemos,
+            fromProject: projectId,
+            projectId: projectId,
+          });
+          // update project with draftDocId
+          try {
+            await db
+              .collection('users')
+              .doc(uid)
+              .collection('projects')
+              .doc(projectId)
+              .set({ draftDocId: docRef.id, updatedAt: now }, { merge: true });
+          } catch (e) {
+            console.warn('프로젝트 업데이트 실패:', e);
+          }
+          // redirect to editor
+          window.location.href = `editor.html?doc=${docRef.id}`;
+          return true;
+        } catch (e) {
+          console.error('createDraftForProject error:', e);
+          showToast('초안 생성 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+          return false;
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // 3) Firestore: 프로젝트 로드
+      // ─────────────────────────────────────────────────────────────
+      function normalizeProjectDoc(doc) {
+        const d = doc || {};
+        return {
+          id: String(d.id || ''),
+          name: d.name || d.title || 'Project',
+          description: d.description || '',
+          goal: d.goal || '',
+          expanded: !!d.expanded,
+          todoTasks: Array.isArray(d.todoTasks) ? d.todoTasks : [],
+          objectives: Array.isArray(d.objectives) ? d.objectives : [],
+        };
+      }
+
+      async function fetchProjectsFromServer() {
+        if (!db || !currentUser) return;
+        try {
+          const snap = await db
+            .collection("users")
+            .doc(currentUser.uid)
+            .collection("projects")
+            .orderBy("createdAt", "desc")
+            .limit(200)
+            .get();
+
+          projects = snap.docs.map((doc) => normalizeProjectDoc({ id: doc.id, ...doc.data() }));
+        } catch (e) {
+          console.error("프로젝트 로드 오류:", e);
+          projects = [];
+          showToast("프로젝트 로드 오류: 콘솔을 확인해주세요.");
+        } finally {
+          renderStats();
+          renderProjects();
+          if (window.lucide) lucide.createIcons();
+        }
+      }
+
+      // ─────────────────────────────────────────────────────────────
+      // 4) Init + Auth gate
+      // ─────────────────────────────────────────────────────────────
+      renderNavigation();
+      renderStats();
+      renderProjects();
+
+      let __fw_authGateTimer = null;
+
+      if (auth) {
+        auth.onAuthStateChanged(async (user) => {
+          if (!user) {
+            if (__fw_isLocalFile) {
+              if (__fw_authGateTimer) { clearTimeout(__fw_authGateTimer); __fw_authGateTimer = null; }
+              showToast('로컬 파일로 실행 중입니다. Firebase 세션을 사용하려면 Hosting URL에서 열어주세요.');
+              projects = [];
+              renderStats();
+              renderProjects();
+              return;
+            }
+
+            if (__fw_authGateTimer) clearTimeout(__fw_authGateTimer);
+            __fw_authGateTimer = setTimeout(() => {
+              try {
+                if (!auth.currentUser) {
+                  localStorage.removeItem(AUTH_KEY);
+                  window.location.replace("login.html");
+                }
+              } catch (e) {
+                localStorage.removeItem(AUTH_KEY);
+                window.location.replace("login.html");
+              }
+            }, 3000);
+            return;
+          }
+
+          if (__fw_authGateTimer) { clearTimeout(__fw_authGateTimer); __fw_authGateTimer = null; }
+
+          let onboardingComplete = false;
+          try {
+            const profile = await ensureUserProfile(user);
+            onboardingComplete = !!profile.onboardingComplete;
+          } catch (e) {
+            const cached = readAuthCache();
+            onboardingComplete = !!(cached && cached.uid === user.uid && cached.onboardingComplete);
+            console.warn("Profile load failed; falling back to cache:", e);
+          }
+
+          writeAuthCache(user, onboardingComplete);
+
+          if (!onboardingComplete) {
+            window.location.replace("onboarding.html");
+            return;
+          }
+
+          currentUser = user;
+          await fetchProjectsFromServer();
+        });
+      }
+    </script>
+  </body>
+</html>
